@@ -55,7 +55,7 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
   function addConstantRoutes(routes: ElegantConstRoute[]) {
     const constantRoutesMap = new Map<string, ElegantConstRoute>([]);
 
-    routes.forEach(route => {
+    routes.forEach((route) => {
       constantRoutesMap.set(route.name, route);
     });
 
@@ -68,7 +68,7 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
   function addAuthRoutes(routes: ElegantConstRoute[]) {
     const authRoutesMap = new Map<string, ElegantConstRoute>([]);
 
-    routes.forEach(route => {
+    routes.forEach((route) => {
       authRoutesMap.set(route.name, route);
     });
 
@@ -143,7 +143,7 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
 
   /** Reset vue routes */
   function resetVueRoutes() {
-    removeRouteFns.forEach(fn => fn());
+    removeRouteFns.forEach((fn) => fn());
     removeRouteFns.length = 0;
   }
 
@@ -198,7 +198,9 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
     if (authStore.isStaticSuper) {
       addAuthRoutes(staticAuthRoutes);
     } else {
-      const filteredAuthRoutes = filterAuthRoutesByRoles(staticAuthRoutes, []);
+      // 获取用户角色，如果用户有角色则使用用户角色进行过滤
+      const userRoles = authStore.userInfo.roleIds || [];
+      const filteredAuthRoutes = filterAuthRoutesByRoles(staticAuthRoutes, userRoles);
 
       addAuthRoutes(filteredAuthRoutes);
     }
@@ -253,7 +255,7 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
    * @param routes Vue routes
    */
   function addRoutesToVueRouter(routes: RouteRecordRaw[]) {
-    routes.forEach(route => {
+    routes.forEach((route) => {
       const removeFn = router.addRoute(route);
       addRemoveRouteFn(removeFn);
     });

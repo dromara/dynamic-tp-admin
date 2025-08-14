@@ -8,7 +8,7 @@ import {
   fetchSaveUserResponsibilities
 } from '@/service/api';
 import { $t } from '@/locales';
-import { extractOptionsFromTree } from '../modules/shared';
+import { extractOptionsFromTree } from './shared';
 
 defineOptions({
   name: 'UserResponsibilitiesSetting'
@@ -100,7 +100,7 @@ async function handleUseResponsibilities() {
 
 /** update org units principal ids */
 function handleOrgUnitsPrincipalIdsUpdate(value: string[]) {
-  model.orgUnitsPrincipalIds = model.orgUnitsPrincipalIds.filter(id => value.includes(id));
+  model.orgUnitsPrincipalIds = model.orgUnitsPrincipalIds.filter((id) => value.includes(id));
 }
 
 /** submit */
@@ -125,60 +125,62 @@ watch(visible, () => {
 </script>
 
 <template>
-  <NModal v-model:show="visible" preset="card" :segmented="false" class="w-800px">
-    <NGrid :x-gap="8" :y-gap="8">
-      <NFormItemGi span="12 s:8 m:6" :label="$t('page.manage.user.userRole')">
-        <NSelect
-          v-model:value="model.roleIds"
-          multiple
-          filterable
-          :options="roleOptions"
-          :max-tag-count="3"
-          :placeholder="$t('page.manage.user.form.userRole')"
-        />
+  <NModal v-model:show="visible"
+          preset="card"
+          :segmented="false"
+          class="w-800px">
+    <NGrid :x-gap="8"
+           :y-gap="8">
+      <NFormItemGi span="12 s:8 m:6"
+                   :label="$t('page.manage.user.userRole')">
+        <NSelect v-model:value="model.roleIds"
+                 multiple
+                 filterable
+                 :options="roleOptions"
+                 :max-tag-count="3"
+                 :placeholder="$t('page.manage.user.form.userRole')" />
       </NFormItemGi>
-      <NFormItemGi span="12 s:8 m:6" :label="$t('page.manage.user.userPosition')">
-        <NSelect
-          v-model:value="model.positionIds"
-          multiple
-          filterable
-          :options="positionOptions"
-          :max-tag-count="3"
-          :placeholder="$t('page.manage.user.form.userPosition')"
-        />
+      <NFormItemGi span="12 s:8 m:6"
+                   :label="$t('page.manage.user.userPosition')">
+        <NSelect v-model:value="model.positionIds"
+                 multiple
+                 filterable
+                 :options="positionOptions"
+                 :max-tag-count="3"
+                 :placeholder="$t('page.manage.user.form.userPosition')" />
       </NFormItemGi>
-      <NFormItemGi span="24" :label="$t('page.manage.user.userOrgUnits')">
-        <NTreeSelect
-          v-model:value="model.orgUnitsIds"
-          :options="orgUnitsTree"
-          multiple
-          checkable
-          filterable
-          key-field="id"
-          label-field="name"
-          default-expand-all
-          :max-tag-count="7"
-          :on-update-value="handleOrgUnitsPrincipalIdsUpdate"
-          :placeholder="$t('page.manage.user.form.userOrgUnits')"
-        />
+      <NFormItemGi span="24"
+                   :label="$t('page.manage.user.userOrgUnits')">
+        <NTreeSelect v-model:value="model.orgUnitsIds"
+                     :options="orgUnitsTree"
+                     multiple
+                     checkable
+                     filterable
+                     key-field="id"
+                     label-field="name"
+                     default-expand-all
+                     :max-tag-count="7"
+                     :on-update-value="handleOrgUnitsPrincipalIdsUpdate"
+                     :placeholder="$t('page.manage.user.form.userOrgUnits')" />
       </NFormItemGi>
-      <NFormItemGi span="24" :label="$t('page.manage.user.manageOrganization')">
-        <NSelect
-          v-model:value="model.orgUnitsPrincipalIds"
-          multiple
-          filterable
-          :max-tag-count="7"
-          :options="orgUnitsPrincipalOptions"
-          :placeholder="$t('page.manage.user.form.userOrgUnits')"
-        />
+      <NFormItemGi span="24"
+                   :label="$t('page.manage.user.manageOrganization')">
+        <NSelect v-model:value="model.orgUnitsPrincipalIds"
+                 multiple
+                 filterable
+                 :max-tag-count="7"
+                 :options="orgUnitsPrincipalOptions"
+                 :placeholder="$t('page.manage.user.form.userOrgUnits')" />
       </NFormItemGi>
     </NGrid>
     <template #footer>
       <NSpace justify="end">
-        <NButton quaternary @click="closeModal">
+        <NButton quaternary
+                 @click="closeModal">
           {{ $t('common.cancel') }}
         </NButton>
-        <NButton type="primary" @click="handleSubmit">
+        <NButton type="primary"
+                 @click="handleSubmit">
           {{ $t('common.confirm') }}
         </NButton>
       </NSpace>

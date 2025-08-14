@@ -1,6 +1,6 @@
 const local: App.I18n.Schema = {
   system: {
-    title: 'Panis 管理系统',
+    title: 'Dynamic-Tp管理端',
     updateTitle: '系统版本更新通知',
     updateContent: '检测到系统有新版本发布，是否立即刷新页面？',
     updateConfirm: '立即刷新',
@@ -209,6 +209,8 @@ const local: App.I18n.Schema = {
     manage_position: '岗位管理',
     manage_org: '组织管理',
     manage_notice: '通知公告',
+    properties: '配置管理',
+    'thread-pool': '线程池管理',
     monitor: '监控管理',
     'monitor_thread-pool': '线程池监控',
     monitor_thread_pool_detail: '线程池详情',
@@ -306,6 +308,9 @@ const local: App.I18n.Schema = {
       schedule: '作息安排',
       study: '学习',
       work: '工作',
+      threadPool: {
+        selectEmptyTip: '请选择线程池配置'
+      },
       rest: '休息',
       entertainment: '娱乐',
       visitCount: '访问量',

@@ -32,7 +32,11 @@ public class GlobalUserHolder {
      */
     public static LoginUser getUser() {
         try {
-            return (LoginUser) StpUtil.getSession().get("user");
+            LoginUser loginUser = (LoginUser) StpUtil.getSession().get("user");
+            if(loginUser == null){
+                return LoginUser.builder().id(-1L).realName("系统用户").build();
+            }
+            return loginUser;
         } catch (NotLoginException | NotWebContextException exception) {
             return LoginUser.builder().id(-1L).realName("系统用户").build();
         }

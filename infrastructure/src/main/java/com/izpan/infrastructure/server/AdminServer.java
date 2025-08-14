@@ -8,27 +8,50 @@ import com.alipay.remoting.rpc.RpcServer;
 import com.alipay.remoting.serialization.HessianSerializer;
 import com.alipay.remoting.serialization.SerializerManager;
 import com.izpan.infrastructure.server.processor.AdminServerUserProcessor;
+import com.izpan.infrastructure.server.processor.ServerAttributeProcessor;
 import com.izpan.infrastructure.server.processor.ServerConnectProcessor;
 import com.izpan.infrastructure.server.processor.ServerDisconnectProcessor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.dromara.dynamictp.common.em.AdminRequestTypeEnum;
 import org.dromara.dynamictp.common.entity.AdminRequestBody;
+import org.dromara.dynamictp.common.properties.DtpProperties;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * AdminServer class
+ *
+ * @author eachann
+ */
 @Slf4j
+@Component
 public class AdminServer {
 
     private final int port = 8989;
 
-    private final RpcServer server;
+    private RpcServer server;
 
-    private final AdminServerUserProcessor adminServerUserProcessor = new AdminServerUserProcessor();
+    @Autowired
+    private AdminServerUserProcessor adminServerUserProcessor;
+
+    @Autowired
+    private ServerAttributeProcessor serverAttributeProcessor;
+
+    @Autowired
+    private ServerConnectProcessor serverConnectProcessor;
+
+    @Autowired
+    private ServerDisconnectProcessor serverDisconnectProcessor;
 
     @Getter
     private static final HessianSerializer SERIALIZER = new HessianSerializer();
@@ -36,40 +59,19 @@ public class AdminServer {
     @Getter
     private static final SnowflakeGenerator SNOWFLAKE_GENERATOR = new SnowflakeGenerator();
 
-    public AdminServer() {
+    @PostConstruct
+    public void init() {
         this.server = new RpcServer(port, true);
         server.addConnectionEventProcessor(ConnectionEventType.CONNECT,
-                new ServerConnectProcessor(adminServerUserProcessor));
+                serverConnectProcessor);
         server.addConnectionEventProcessor(ConnectionEventType.CLOSE,
-                new ServerDisconnectProcessor(adminServerUserProcessor));
+                serverDisconnectProcessor);
+        server.registerUserProcessor(serverAttributeProcessor);
         server.registerUserProcessor(adminServerUserProcessor);
         this.server.startup();
         SerializerManager.addSerializer(1, SERIALIZER);
         System.setProperty(Configs.SERIALIZER, String.valueOf(SERIALIZER));
         log.info("DynamicTp admin server started, port: {}", port);
-    }
-
-    /**
-     * 向第一个可用的客户端发送请求（向后兼容）
-     * 
-     * @param requestType 请求类型
-     * @param body        请求体
-     * @return 响应结果
-     * @throws RemotingException    RPC异常
-     * @throws InterruptedException 中断异常
-     */
-    public Object requestToClient(AdminRequestTypeEnum requestType, Object body)
-            throws RemotingException, InterruptedException {
-        AdminRequestBody requestBody = new AdminRequestBody(SNOWFLAKE_GENERATOR.next(), requestType, body);
-        String remoteAddr = adminServerUserProcessor.getFirstAvailableClient();
-
-        if ("NOT-CONNECT".equals(remoteAddr)) {
-            log.warn("No clients connected, cannot send request");
-            return null;
-        }
-
-        log.debug("Sending request to client: {}", remoteAddr);
-        return server.invokeSync(remoteAddr, requestBody, 30000);
     }
 
     /**
@@ -97,20 +99,20 @@ public class AdminServer {
      * @return 所有客户端的响应结果列表
      */
     public List<Object> broadcastToAllClients(AdminRequestTypeEnum requestType, Object body) {
-        Set<String> connectedClients = adminServerUserProcessor.getConnectedClients();
+        Set<String> connectedClientAddresses = serverConnectProcessor.getConnectedClientAddresses();
         List<Object> results = new ArrayList<>();
 
-        if (connectedClients.isEmpty()) {
+        if (connectedClientAddresses.isEmpty()) {
             log.warn("No clients connected, cannot broadcast request");
             return results;
         }
 
-        log.info("Broadcasting request to {} clients: {}", connectedClients.size(), connectedClients);
+        log.info("Broadcasting request to {} clients: {}", connectedClientAddresses.size(), connectedClientAddresses);
 
         // 使用CompletableFuture并发发送请求
         List<CompletableFuture<Object>> futures = new ArrayList<>();
 
-        for (String clientAddress : connectedClients) {
+        for (String clientAddress : connectedClientAddresses) {
             CompletableFuture<Object> future = CompletableFuture.supplyAsync(() -> {
                 try {
                     return requestToSpecificClient(clientAddress, requestType, body);
@@ -127,7 +129,7 @@ public class AdminServer {
                 futures.toArray(new CompletableFuture[0]));
 
         try {
-            allFutures.get(30, TimeUnit.SECONDS); // 30秒超时
+            allFutures.get(30, TimeUnit.SECONDS);
         } catch (Exception e) {
             log.error("Timeout or error waiting for client responses", e);
         }
@@ -149,10 +151,19 @@ public class AdminServer {
     /**
      * 获取所有已连接的客户端
      * 
-     * @return 客户端地址集合
+     * @return 客户端名称集合
      */
     public Set<String> getConnectedClients() {
-        return adminServerUserProcessor.getConnectedClients();
+        return serverConnectProcessor.getConnectedClients();
+    }
+
+    /**
+     * 获取所有已连接的客户端地址
+     * 
+     * @return 客户端地址集合
+     */
+    public Set<String> getConnectedClientAddresses() {
+        return serverConnectProcessor.getConnectedClientAddresses();
     }
 
     /**
@@ -161,21 +172,77 @@ public class AdminServer {
      * @return 客户端数量
      */
     public int getConnectedClientCount() {
-        return adminServerUserProcessor.getConnectedClients().size();
+        return serverConnectProcessor.getConnectedClientCount();
     }
 
     /**
-     * 获取处理器实例
+     * 检查客户端是否已连接（通过地址）
      * 
-     * @return 处理器实例
+     * @param clientAddress 客户端地址
+     * @return 是否已连接
      */
-    public AdminServerUserProcessor getAdminServerUserProcessor() {
-        return adminServerUserProcessor;
+    public boolean isClientConnected(String clientAddress) {
+        return serverConnectProcessor.isClientConnectedByAddress(clientAddress);
+    }
+
+    /**
+     * 根据客户端名称获取客户端地址
+     * 
+     * @param clientName 客户端名称
+     * @return 客户端地址，如果不存在则返回null
+     */
+    public String getClientAddress(String clientName) {
+        return serverConnectProcessor.getClientAddress(clientName);
+    }
+
+    /**
+     * 根据客户端地址获取客户端名称
+     * 
+     * @param clientAddress 客户端地址
+     * @return 客户端名称，如果不存在则返回null
+     */
+    public String getClientName(String clientAddress) {
+        return serverConnectProcessor.getClientName(clientAddress);
+    }
+
+    public String getAttribute(String clientAddress, String key) {
+        Map<String, String> map = serverAttributeProcessor.getAttributes()
+                .get(clientAddress);
+        if (map == null) {
+            return null;
+        }
+        return map.getOrDefault(key, null);
+    }
+
+    /**
+     * 根据客户端名称获取客户端地址
+     * 使用在属性通道上传的 clientName 与连接地址映射关系
+     *
+     * @param clientName 客户端名称
+     * @return 匹配到的客户端远程地址，未找到返回 null
+     */
+    public String getClientAddressByName(String clientName) {
+        if (clientName == null || clientName.isBlank()) {
+            return null;
+        }
+        Map<String, Map<String, String>> allAttributes = serverAttributeProcessor.getAttributes();
+        for (Map.Entry<String, Map<String, String>> entry : allAttributes.entrySet()) {
+            Map<String, String> attr = entry.getValue();
+            if (attr == null) {
+                continue;
+            }
+            String name = attr.get("clientName");
+            if (clientName.equals(name)) {
+                return entry.getKey();
+            }
+        }
+        return null;
     }
 
     /**
      * 关闭服务器
      */
+    @PreDestroy
     public void shutdown() {
         if (server != null) {
             server.shutdown();
@@ -185,4 +252,8 @@ public class AdminServer {
         }
         log.info("AdminServer shutdown completed");
     }
+
+    // 保留占位方法以避免未使用导入的告警
+    private void DtpPropertiesExample() {
+        /* no-op */ }
 }

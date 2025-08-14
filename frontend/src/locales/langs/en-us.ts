@@ -1,6 +1,6 @@
 const local: App.I18n.Schema = {
   system: {
-    title: 'PanisAdmin',
+    title: 'DynamicTp Admin',
     updateTitle: 'System Version Update Notification',
     updateContent: 'A new version of the system has been detected. Do you want to refresh the page immediately?',
     updateConfirm: 'Refresh immediately',
@@ -209,6 +209,8 @@ const local: App.I18n.Schema = {
     manage_position: 'Position Manage',
     manage_org: 'Organization Manage',
     manage_notice: 'Notice Announcement',
+    properties: 'Properties Manage',
+    'thread-pool': 'Thread Pool Management',
     monitor: 'Monitor Manage',
     'monitor_thread-pool': 'Thread Pool Monitor',
     monitor_thread_pool_detail: 'Thread Pool Detail',
@@ -306,6 +308,9 @@ const local: App.I18n.Schema = {
       schedule: 'Work and rest Schedule',
       study: 'Study',
       work: 'Work',
+      threadPool: {
+        selectEmptyTip: 'Please select thread pool configuration'
+      },
       rest: 'Rest',
       entertainment: 'Entertainment',
       visitCount: 'Visit Count',

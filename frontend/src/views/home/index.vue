@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue';
+import { useMessage } from 'naive-ui';
 import { fetchGetThreadPoolListByClient, fetchGetThreadPoolMetricsByClient, fetchGetThreadPoolStatisticsByClient } from '@/service/api';
+import { fetchCheckClientStatus, fetchGetUnresponsiveClients } from '@/service/api/manage/client';
+import { useClientStore } from '@/store/modules/client';
 import {
   ClientSelector,
   PerformanceChart,
@@ -15,8 +18,11 @@ defineOptions({
   name: 'Home'
 });
 
+// 使用全局客户端状态（clientName 为主键）
+const clientStore = useClientStore();
+const message = useMessage();
+
 // 当前选中的客户端
-const selectedClientId = ref<string>('');
 const selectedClient = ref<any>(null);
 
 // 统计数据
@@ -57,14 +63,47 @@ function processSpecialValue(value: number): number {
   return value === 2147483647 ? 0 : value;
 }
 
+// 检查客户端状态（使用 clientName）
+async function checkClientStatus(clientName: string): Promise<boolean> {
+  try {
+    const { error, data } = await fetchCheckClientStatus(clientName);
+    if (error) {
+      console.error('检查客户端状态失败:', error);
+      return false;
+    }
+    return data;
+  } catch (err) {
+    console.error('检查客户端状态异常:', err);
+    return false;
+  }
+}
+
+// 移除未使用的 markClientAsOffline 函数
+
+// 获取无响应的客户端列表
+async function getUnresponsiveClients(): Promise<string[]> {
+  try {
+    const { error, data } = await fetchGetUnresponsiveClients();
+    if (error) {
+      console.error('获取无响应客户端列表失败:', error);
+      return [];
+    }
+    return data || [];
+  } catch (err) {
+    console.error('获取无响应客户端列表异常:', err);
+    return [];
+  }
+}
+
 // 获取统计数据
 async function getStatistics() {
   try {
-    if (!selectedClientId.value) {
+    if (!clientStore.selectedClientName) {
       console.warn('未选择客户端，无法获取统计数据');
       return;
     }
-    const { error, data } = await fetchGetThreadPoolStatisticsByClient(selectedClientId.value);
+
+    const { error, data } = await fetchGetThreadPoolStatisticsByClient(clientStore.selectedClientName);
     if (!error && data) {
       statistics.value = data;
     }
@@ -77,11 +116,12 @@ async function getStatistics() {
 async function getThreadPoolList() {
   try {
     loading.value = true;
-    if (!selectedClientId.value) {
+    if (!clientStore.selectedClientName) {
       console.warn('未选择客户端，无法获取线程池列表');
       return;
     }
-    const { error, data } = await fetchGetThreadPoolListByClient(selectedClientId.value, { page: 1, pageSize: 10 });
+
+    const { error, data } = await fetchGetThreadPoolListByClient(clientStore.selectedClientName, { page: 1, pageSize: 10 });
     if (!error && data) {
       threadPools.value = data.records;
     }
@@ -95,11 +135,12 @@ async function getThreadPoolList() {
 // 获取实时指标
 async function getMetrics() {
   try {
-    if (!selectedClientId.value) {
+    if (!clientStore.selectedClientName) {
       console.warn('未选择客户端，无法获取实时指标');
       return;
     }
-    const { error, data } = await fetchGetThreadPoolMetricsByClient(selectedClientId.value);
+
+    const { error, data } = await fetchGetThreadPoolMetricsByClient(clientStore.selectedClientName);
     if (!error && data) {
       metrics.value = data;
       updateTimeSeriesData();
@@ -181,6 +222,15 @@ function handleClientChange(client: any) {
 
 // 初始化数据
 async function initData() {
+  // 首先检查客户端状态，只检查一次
+  if (clientStore.selectedClientName) {
+    const isClientOnline = await checkClientStatus(clientStore.selectedClientName);
+    if (!isClientOnline) {
+      return;
+    }
+  }
+
+  // 然后并行获取所有数据
   await Promise.all([getStatistics(), getThreadPoolList(), getMetrics()]);
 }
 
@@ -188,7 +238,14 @@ async function initData() {
 async function refreshData() {
   refreshing.value = true;
   try {
-    await Promise.all([getStatistics(), getThreadPoolList(), getMetrics()]);
+    // 首先检查并处理无响应的客户端
+    const unresponsiveClients = await getUnresponsiveClients();
+    if (unresponsiveClients.length > 0) {
+      message.warning(`发现 ${unresponsiveClients.length} 个无响应的客户端，已自动标记为离线`);
+    }
+
+    // 然后刷新当前客户端的数据
+    await initData();
   } finally {
     refreshing.value = false;
   }
@@ -196,8 +253,17 @@ async function refreshData() {
 
 // 开始定时刷新
 function startTimer() {
-  timer = setInterval(() => {
-    getMetrics();
+  timer = setInterval(async () => {
+    // 定时检查无响应的客户端
+    const unresponsiveClients = await getUnresponsiveClients();
+    if (unresponsiveClients.length > 0) {
+      console.warn(`定时检查发现 ${unresponsiveClients.length} 个无响应的客户端`);
+    }
+
+    // 获取实时指标（不检查客户端状态，因为定时刷新时客户端应该已经在线）
+    if (clientStore.selectedClientName) {
+      getMetrics();
+    }
   }, 30000); // 每30秒刷新一次
 }
 
@@ -223,25 +289,32 @@ onUnmounted(() => {
 <template>
   <div class="min-h-500px flex-col-stretch gap-4">
     <!-- 客户端选择器 -->
-    <ClientSelector v-model="selectedClientId" @change="handleClientChange" />
+    <ClientSelector :model-value="clientStore.selectedClientName"
+                    @update:model-value="value => clientStore.setSelectedClient(value)"
+                    @change="handleClientChange" />
 
     <!-- 统计概览 -->
-    <StatisticsOverview :metrics="metrics" :refreshing="refreshing" @refresh="refreshData" />
+    <StatisticsOverview :metrics="metrics"
+                        :refreshing="refreshing"
+                        @refresh="refreshData" />
 
     <!-- 线程池线程数变化趋势 -->
-    <ThreadUsageChart :metrics="metrics" :time-series-data="timeSeriesData" />
+    <ThreadUsageChart :metrics="metrics"
+                      :time-series-data="timeSeriesData" />
 
     <!-- 队列使用情况 -->
     <QueueUsageChart :metrics="metrics" />
 
     <!-- 性能指标趋势 -->
-    <PerformanceChart :metrics="metrics" :time-series-data="timeSeriesData" />
+    <PerformanceChart :metrics="metrics"
+                      :time-series-data="timeSeriesData" />
 
     <!-- 响应时间百分位分布 -->
     <ResponseTimeChart :metrics="metrics" />
 
     <!-- 线程池列表 -->
-    <ThreadPoolTable :thread-pools="threadPools" :loading="loading" />
+    <ThreadPoolTable :thread-pools="threadPools"
+                     :loading="loading" />
   </div>
 </template>
 

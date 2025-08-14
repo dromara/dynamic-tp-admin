@@ -33,6 +33,8 @@ declare module "@elegant-router/types" {
     "404": "/404";
     "500": "/500";
     "about": "/about";
+    "demo-route": "/demo-route";
+    "demo-route_child": "/demo-route/child/:id";
     "function": "/function";
     "function_hide-child": "/function/hide-child";
     "function_hide-child_one": "/function/hide-child/one";
@@ -65,13 +67,13 @@ declare module "@elegant-router/types" {
     "monitor_logs_scheduler": "/monitor/logs/scheduler";
     "monitor_scheduler": "/monitor/scheduler";
     "monitor_system": "/monitor/system";
-    "monitor_thread-pool": "/monitor/thread-pool";
     "multi-menu": "/multi-menu";
     "multi-menu_first": "/multi-menu/first";
     "multi-menu_first_child": "/multi-menu/first/child";
     "multi-menu_second": "/multi-menu/second";
     "multi-menu_second_child": "/multi-menu/second/child";
     "multi-menu_second_child_home": "/multi-menu/second/child/home";
+    "thread-pool": "/thread-pool";
     "tools": "/tools";
     "tools_generate-table": "/tools/generate-table";
     "user-center": "/user-center";
@@ -122,6 +124,7 @@ declare module "@elegant-router/types" {
     | "404"
     | "500"
     | "about"
+    | "demo-route"
     | "function"
     | "home"
     | "iframe-page"
@@ -129,6 +132,7 @@ declare module "@elegant-router/types" {
     | "manage"
     | "monitor"
     | "multi-menu"
+    | "thread-pool"
     | "tools"
     | "user-center"
   >;
@@ -155,6 +159,7 @@ declare module "@elegant-router/types" {
     | "iframe-page"
     | "login"
     | "about"
+    | "demo-route_child"
     | "function_hide-child_one"
     | "function_hide-child_three"
     | "function_hide-child_two"
@@ -180,9 +185,9 @@ declare module "@elegant-router/types" {
     | "monitor_logs_scheduler"
     | "monitor_scheduler"
     | "monitor_system"
-    | "monitor_thread-pool"
     | "multi-menu_first_child"
     | "multi-menu_second_child_home"
+    | "thread-pool"
     | "tools_generate-table"
     | "user-center"
   >;

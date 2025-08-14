@@ -1,8 +1,12 @@
 package com.izpan.admin.controller.monitor;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
+
 import com.izpan.common.api.Result;
 import com.izpan.infrastructure.server.AdminServer;
+import com.izpan.modules.manager.domain.entity.ManClient;
+import com.izpan.modules.manager.facade.IManClientFacade;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.NonNull;
@@ -18,7 +22,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import java.util.Set;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * 客户端连接监控
@@ -38,15 +45,28 @@ public class MonClientController {
   @NonNull
   private AdminServer adminServer;
 
+  @NonNull
+  private IManClientFacade iManClientFacade;
+
   @GetMapping("/clients")
   @SaCheckPermission("mon:client:list")
   @Operation(operationId = "1", summary = "获取客户端列表")
   public Result<List<Map<String, Object>>> getClients() {
     log.info("获取客户端列表");
-    Set<String> connectedClients = adminServer.getConnectedClients();
+    Set<String> connectedClientAddresses = adminServer.getConnectedClientAddresses();
     List<Map<String, Object>> clients = new ArrayList<>();
 
-    for (String clientAddress : connectedClients) {
+    // 获取数据库中所有客户端信息
+    List<ManClient> allClients = iManClientFacade.getOnlineClients();
+
+    // 创建当前连接客户端名称集合（从 clientId 映射为 clientName）用于快速查找
+    Set<String> connectedClientNames = connectedClientAddresses.stream()
+        .map(clientAddress -> adminServer.getClientName(clientAddress))
+        .filter(Objects::nonNull)
+        .collect(Collectors.toSet());
+
+    // 处理当前连接的客户端
+    for (String clientAddress : connectedClientAddresses) {
       Map<String, Object> client = new HashMap<>();
 
       // 解析客户端地址
@@ -54,11 +74,13 @@ public class MonClientController {
       String clientIp = parts.length > 0 ? parts[0] : "unknown";
       int clientPort = parts.length > 1 ? Integer.parseInt(parts[1]) : 0;
 
-      // 构建客户端信息
+      String clientName = adminServer.getAttribute(clientAddress, "clientName");
+      // 构建客户端信息 - 基于真实连接状态
       client.put("clientId", clientAddress);
-      client.put("clientName", "客户端-" + clientIp);
+      client.put("clientName", clientName);
       client.put("clientIp", clientIp);
       client.put("clientPort", clientPort);
+      // 客户端在connectedClients中表示真实在线状态
       client.put("status", "online");
       client.put("lastHeartbeat", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
       client.put("registerTime", LocalDateTime.now().minusHours(1).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
@@ -67,6 +89,54 @@ public class MonClientController {
       client.put("version", "1.0.0");
 
       clients.add(client);
+
+      // 调用IManClientFacade处理客户端连接，添加或更新客户端数据
+      try {
+        String clientId = clientAddress;
+        String clientType = "web";
+        String clientVersion = "1.0.0";
+        String serverIp = "127.0.0.1";
+        Integer serverPort = 8989;
+
+        boolean result = iManClientFacade.handleClientConnection(
+            clientId, clientName, clientType, clientVersion,
+            clientIp, clientPort, serverIp, serverPort);
+
+        if (result) {
+          log.info("客户端数据添加或更新成功: {}", clientId);
+        } else {
+          log.warn("客户端数据添加或更新失败: {}", clientId);
+        }
+      } catch (Exception e) {
+        log.error("处理客户端连接时发生异常: {}", e.getMessage(), e);
+      }
+    }
+
+    // 处理数据库中存储但当前未连接的客户端（离线状态）
+    for (ManClient dbClient : allClients) {
+      String dbClientClientName = dbClient.getClientName();
+      // 如果数据库中的客户端不在当前连接列表中，则标记为离线
+      if (!connectedClientNames.contains(dbClientClientName)) {
+        Map<String, Object> client = new HashMap<>();
+
+        client.put("clientId", dbClient.getClientId());
+        client.put("clientName", dbClientClientName);
+        client.put("clientIp", dbClient.getClientIp());
+        client.put("clientPort", dbClient.getClientPort());
+        client.put("status", "offline");
+        client.put("lastHeartbeat",
+            dbClient.getLastHeartbeatTime() != null
+                ? dbClient.getLastHeartbeatTime().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                : LocalDateTime.now().minusHours(2).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+        client.put("registerTime",
+            dbClient.getCreateTime() != null ? dbClient.getCreateTime().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                : LocalDateTime.now().minusHours(1).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+        client.put("applicationName", "panis-boot");
+        client.put("environment", "dev");
+        client.put("version", dbClient.getClientVersion() != null ? dbClient.getClientVersion() : "1.0.0");
+
+        clients.add(client);
+      }
     }
 
     return Result.data(clients);

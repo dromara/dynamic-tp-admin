@@ -51,6 +51,26 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
+    name: 'demo-route',
+    path: '/demo-route',
+    component: 'layout.base',
+    meta: {
+      title: 'demo-route',
+      i18nKey: 'route.demo-route'
+    },
+    children: [
+      {
+        name: 'demo-route_child',
+        path: '/demo-route/child/:id',
+        component: 'view.demo-route_child',
+        meta: {
+          title: 'demo-route_child',
+          i18nKey: 'route.demo-route_child'
+        }
+      }
+    ]
+  },
+  {
     name: 'function',
     path: '/function',
     component: 'layout.base',
@@ -210,10 +230,7 @@ export const generatedRoutes: GeneratedRoute[] = [
     component: 'layout.base',
     meta: {
       title: 'manage',
-      i18nKey: 'route.manage',
-      icon: 'carbon:cloud-service-management',
-      order: 9,
-      roles: ['R_ADMIN']
+      i18nKey: 'route.manage'
     },
     children: [
       {
@@ -231,11 +248,7 @@ export const generatedRoutes: GeneratedRoute[] = [
         component: 'view.manage_menu',
         meta: {
           title: 'manage_menu',
-          i18nKey: 'route.manage_menu',
-          icon: 'material-symbols:route',
-          order: 3,
-          roles: ['R_ADMIN'],
-          keepAlive: true
+          i18nKey: 'route.manage_menu'
         }
       },
       {
@@ -271,10 +284,7 @@ export const generatedRoutes: GeneratedRoute[] = [
         component: 'view.manage_role',
         meta: {
           title: 'manage_role',
-          i18nKey: 'route.manage_role',
-          icon: 'carbon:user-role',
-          order: 2,
-          roles: ['R_SUPER']
+          i18nKey: 'route.manage_role'
         }
       },
       {
@@ -283,23 +293,16 @@ export const generatedRoutes: GeneratedRoute[] = [
         component: 'view.manage_user',
         meta: {
           title: 'manage_user',
-          i18nKey: 'route.manage_user',
-          icon: 'ic:round-manage-accounts',
-          order: 1,
-          roles: ['R_ADMIN']
+          i18nKey: 'route.manage_user'
         }
       },
       {
         name: 'manage_user-detail',
         path: '/manage/user-detail/:id',
         component: 'view.manage_user-detail',
-        props: true,
         meta: {
           title: 'manage_user-detail',
-          i18nKey: 'route.manage_user-detail',
-          hideInMenu: true,
-          roles: ['R_ADMIN'],
-          activeMenu: 'manage_user'
+          i18nKey: 'route.manage_user-detail'
         }
       }
     ]
@@ -394,15 +397,6 @@ export const generatedRoutes: GeneratedRoute[] = [
           title: 'monitor_system',
           i18nKey: 'route.monitor_system'
         }
-      },
-      {
-        name: 'monitor_thread-pool',
-        path: '/monitor/thread-pool',
-        component: 'view.monitor_thread-pool',
-        meta: {
-          title: 'monitor_thread-pool',
-          i18nKey: 'route.monitor_thread-pool'
-        }
       }
     ]
   },
@@ -467,6 +461,15 @@ export const generatedRoutes: GeneratedRoute[] = [
         ]
       }
     ]
+  },
+  {
+    name: 'thread-pool',
+    path: '/thread-pool',
+    component: 'layout.base$view.thread-pool',
+    meta: {
+      title: 'thread-pool',
+      i18nKey: 'route.thread-pool'
+    }
   },
   {
     name: 'tools',

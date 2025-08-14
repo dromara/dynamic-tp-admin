@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import SvgIcon from '@/components/custom/svg-icon.vue';
 
 interface Props {
   metrics: Api.Monitor.ThreadPoolMetrics[];
@@ -62,70 +63,89 @@ const handleRefresh = () => {
 </script>
 
 <template>
-  <NCard title="线程池概览" :bordered="false" class="card-wrapper">
+  <NCard title="线程池概览"
+         :bordered="false"
+         class="card-wrapper">
     <template #header-extra>
-      <NButton type="primary" size="small" :loading="refreshing" @click="handleRefresh">
-        <IconRefresh class="mr-1" />
+      <NButton type="primary"
+               size="small"
+               :loading="refreshing"
+               @click="handleRefresh">
+        <SvgIcon icon="ic:round-refresh"
+                 class="mr-1" />
         刷新数据
       </NButton>
     </template>
-    <NGrid :x-gap="16" :y-gap="16" responsive="screen" cols="2 s:2 m:3 l:4 xl:5 2xl:5">
+    <NGrid :x-gap="16"
+           :y-gap="16"
+           responsive="screen"
+           cols="2 s:2 m:3 l:4 xl:5 2xl:5">
       <NGridItem>
-        <NCard size="small" class="text-center h-full">
+        <NCard size="small"
+               class="text-center h-full">
           <div class="text-2xl text-primary font-bold truncate">{{ summaryStats.totalPools }}</div>
           <div class="mt-2 text-sm text-gray-500 truncate">总线程池数</div>
         </NCard>
       </NGridItem>
       <NGridItem>
-        <NCard size="small" class="text-center h-full">
+        <NCard size="small"
+               class="text-center h-full">
           <div class="text-2xl text-success font-bold truncate">{{ summaryStats.runningPools }}</div>
           <div class="mt-2 text-sm text-gray-500 truncate">运行中线程池</div>
         </NCard>
       </NGridItem>
       <NGridItem>
-        <NCard size="small" class="text-center h-full">
+        <NCard size="small"
+               class="text-center h-full">
           <div class="text-2xl text-warning font-bold truncate">{{ summaryStats.totalThreads }}</div>
           <div class="mt-2 text-sm text-gray-500 truncate">总线程数</div>
         </NCard>
       </NGridItem>
       <NGridItem>
-        <NCard size="small" class="text-center h-full">
+        <NCard size="small"
+               class="text-center h-full">
           <div class="text-2xl text-error font-bold truncate">{{ summaryStats.activeThreads }}</div>
           <div class="mt-2 text-sm text-gray-500 truncate">活跃线程数</div>
         </NCard>
       </NGridItem>
       <NGridItem>
-        <NCard size="small" class="text-center h-full">
+        <NCard size="small"
+               class="text-center h-full">
           <div class="text-2xl text-info font-bold truncate">{{ summaryStats.avgTps }}</div>
           <div class="mt-2 text-sm text-gray-500 truncate">平均TPS</div>
         </NCard>
       </NGridItem>
       <NGridItem>
-        <NCard size="small" class="text-center h-full">
+        <NCard size="small"
+               class="text-center h-full">
           <div class="text-2xl text-purple font-bold truncate">{{ summaryStats.avgResponseTime }}</div>
           <div class="mt-2 text-sm text-gray-500 truncate">平均响应时间(ms)</div>
         </NCard>
       </NGridItem>
       <NGridItem>
-        <NCard size="small" class="text-center h-full">
+        <NCard size="small"
+               class="text-center h-full">
           <div class="text-2xl text-orange font-bold truncate">{{ summaryStats.totalTasks }}</div>
           <div class="mt-2 text-sm text-gray-500 truncate">总任务数</div>
         </NCard>
       </NGridItem>
       <NGridItem>
-        <NCard size="small" class="text-center h-full">
+        <NCard size="small"
+               class="text-center h-full">
           <div class="text-2xl text-cyan font-bold truncate">{{ summaryStats.completedTasks }}</div>
           <div class="mt-2 text-sm text-gray-500 truncate">已完成任务</div>
         </NCard>
       </NGridItem>
       <NGridItem>
-        <NCard size="small" class="text-center h-full">
+        <NCard size="small"
+               class="text-center h-full">
           <div class="text-2xl text-red font-bold truncate">{{ summaryStats.rejectedTasks }}</div>
           <div class="mt-2 text-sm text-gray-500 truncate">拒绝任务数</div>
         </NCard>
       </NGridItem>
       <NGridItem>
-        <NCard size="small" class="text-center h-full">
+        <NCard size="small"
+               class="text-center h-full">
           <div class="text-2xl text-green font-bold truncate">
             {{ summaryStats.totalTasks > 0 ? ((summaryStats.completedTasks / summaryStats.totalTasks) * 100).toFixed(1) : 0 }}%
           </div>

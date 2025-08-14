@@ -88,6 +88,13 @@
             <artifactId>dynamic-tp-common</artifactId>
         </dependency>
         <!-- PanisBoot Starter End -->
+        
+        <!-- Test Dependencies -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>

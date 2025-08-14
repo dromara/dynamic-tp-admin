@@ -40,42 +40,42 @@ public class BaseEntity implements Serializable {
      * 创建用户名称
      */
     @Schema(description = "创建用户名称")
-    @TableField(fill = FieldFill.INSERT)
+    @TableField(value = "create_user", fill = FieldFill.INSERT)
     private String createUser;
 
     /**
      * 创建用户ID
      */
     @Schema(description = "创建用户ID")
-    @TableField(fill = FieldFill.INSERT)
+    @TableField(value = "create_user_id", fill = FieldFill.INSERT)
     private Long createUserId;
 
     /**
      * 创建时间
      */
     @Schema(description = "创建时间")
-    @TableField(fill = FieldFill.INSERT)
+    @TableField(value = "create_time", fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 
     /**
      * 更新用户名称
      */
     @Schema(description = "更新用户名称")
-    @TableField(fill = FieldFill.UPDATE)
+    @TableField(value = "update_user", fill = FieldFill.UPDATE)
     private String updateUser;
 
     /**
      * 更新用户ID
      */
     @Schema(description = "更新用户ID")
-    @TableField(fill = FieldFill.UPDATE)
+    @TableField(value = "update_user_id", fill = FieldFill.UPDATE)
     private Long updateUserId;
 
     /**
      * 更新时间
      */
     @Schema(description = "更新时间")
-    @TableField(fill = FieldFill.UPDATE)
+    @TableField(value = "update_time", fill = FieldFill.UPDATE)
     private LocalDateTime updateTime;
 
     /**

@@ -10,7 +10,14 @@ import { $t } from '@/locales';
  * @param roles Roles
  */
 export function filterAuthRoutesByRoles(routes: ElegantConstRoute[], roles: string[]) {
-  return routes.flatMap(route => filterAuthRouteByRoles(route, roles));
+  // 调试：检查路由过滤
+  console.log(
+    'filterAuthRoutesByRoles - routes:',
+    routes.map((r) => r.name)
+  );
+  console.log('filterAuthRoutesByRoles - roles:', roles);
+
+  return routes.flatMap((route) => filterAuthRouteByRoles(route, roles));
 }
 
 /**
@@ -26,12 +33,12 @@ function filterAuthRouteByRoles(route: ElegantConstRoute, roles: string[]): Eleg
   const isEmptyRoles = !routeRoles.length;
 
   // if the user's role is included in the route's "roles", then it is allowed to access
-  const hasPermission = routeRoles.some(role => roles.includes(role));
+  const hasPermission = routeRoles.some((role) => roles.includes(role));
 
   const filterRoute = { ...route };
 
   if (filterRoute.children?.length) {
-    filterRoute.children = filterRoute.children.flatMap(item => filterAuthRouteByRoles(item, roles));
+    filterRoute.children = filterRoute.children.flatMap((item) => filterAuthRouteByRoles(item, roles));
   }
 
   // Exclude the route if it has no children after filtering
@@ -76,11 +83,11 @@ export function sortRoutesByOrder(routes: ElegantConstRoute[]) {
 export function getGlobalMenusByAuthRoutes(routes: ElegantConstRoute[]) {
   const menus: App.Global.Menu[] = [];
 
-  routes.forEach(route => {
+  routes.forEach((route) => {
     if (!route.meta?.hideInMenu) {
       const menu = getGlobalMenuByBaseRoute(route);
 
-      if (route.children?.some(child => !child.meta?.hideInMenu)) {
+      if (route.children?.some((child) => !child.meta?.hideInMenu)) {
         menu.children = getGlobalMenusByAuthRoutes(route.children);
       }
 
@@ -99,7 +106,7 @@ export function getGlobalMenusByAuthRoutes(routes: ElegantConstRoute[]) {
 export function updateLocaleOfGlobalMenus(menus: App.Global.Menu[]) {
   const result: App.Global.Menu[] = [];
 
-  menus.forEach(menu => {
+  menus.forEach((menu) => {
     const { i18nKey, label, children } = menu;
 
     const newLabel = i18nKey ? $t(i18nKey) : label;
@@ -152,9 +159,9 @@ function getGlobalMenuByBaseRoute(route: RouteLocationNormalizedLoaded | Elegant
 export function getCacheRouteNames(routes: RouteRecordRaw[]) {
   const cacheNames: LastLevelRouteKey[] = [];
 
-  routes.forEach(route => {
+  routes.forEach((route) => {
     // only get last two level route, which has component
-    route.children?.forEach(child => {
+    route.children?.forEach((child) => {
       if (child.component && child.meta?.keepAlive) {
         cacheNames.push(child.name as LastLevelRouteKey);
       }
@@ -171,7 +178,7 @@ export function getCacheRouteNames(routes: RouteRecordRaw[]) {
  * @param routes
  */
 export function isRouteExistByRouteName(routeName: RouteKey, routes: ElegantConstRoute[]) {
-  return routes.some(route => recursiveGetIsRouteExistByRouteName(route, routeName));
+  return routes.some((route) => recursiveGetIsRouteExistByRouteName(route, routeName));
 }
 
 /**
@@ -188,7 +195,7 @@ function recursiveGetIsRouteExistByRouteName(route: ElegantConstRoute, routeName
   }
 
   if (route.children && route.children.length) {
-    isExist = route.children.some(item => recursiveGetIsRouteExistByRouteName(item, routeName));
+    isExist = route.children.some((item) => recursiveGetIsRouteExistByRouteName(item, routeName));
   }
 
   return isExist;
@@ -203,7 +210,7 @@ function recursiveGetIsRouteExistByRouteName(route: ElegantConstRoute, routeName
 export function getSelectedMenuKeyPathByKey(selectedKey: string, menus: App.Global.Menu[]) {
   const keyPath: string[] = [];
 
-  menus.some(menu => {
+  menus.some((menu) => {
     const path = findMenuPath(selectedKey, menu);
 
     const find = Boolean(path?.length);

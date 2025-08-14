@@ -6,3 +6,5 @@ declare namespace Api {
    */
   namespace SystemManage {}
 }
+
+export * from './thread-pool';

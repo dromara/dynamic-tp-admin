@@ -3,6 +3,7 @@ package com.izpan.admin.controller.monitor;
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.izpan.common.api.Result;
+import com.izpan.infrastructure.annotation.RepeatSubmit;
 import com.izpan.infrastructure.page.PageQuery;
 import com.izpan.infrastructure.server.AdminServer;
 import com.izpan.modules.monitor.domain.bo.MonThreadPoolBO;
@@ -21,7 +22,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.ArrayList;
-import java.util.stream.Collectors;
 
 /**
  * 线程池监控
@@ -44,23 +44,30 @@ public class MonThreadPoolController {
   @NonNull
   private AdminServer adminServer;
 
-  @GetMapping("/{clientId}/page")
+  @GetMapping("/{clientName}/page")
   @SaCheckPermission("mon:thread_pool:page")
   @Operation(operationId = "1", summary = "按客户端分页获取线程池列表")
+  @RepeatSubmit(interval = -1)
   public Result<IPage<ThreadPoolStats>> getThreadPoolListByClient(
-      @Parameter(description = "客户端ID") @PathVariable String clientId,
+      @Parameter(description = "客户端名称") @PathVariable String clientName,
       @Parameter(description = "分页参数") PageQuery pageQuery,
       @Parameter(description = "查询条件") MonThreadPoolBO monThreadPoolBO) {
-    log.info("按客户端分页获取线程池列表，clientId={}", clientId);
+    log.info("按客户端分页获取线程池列表，clientName={}", clientName);
 
-    // 验证客户端是否存在
-    if (!adminServer.getConnectedClients().contains(clientId)) {
+    // 根据客户端名称获取客户端地址
+    String clientAddress = adminServer.getClientAddressByName(clientName);
+    if (clientAddress == null) {
       return Result.failure("客户端不存在或已断开连接");
+    }
+
+    // 验证客户端是否仍然连接
+    if (!adminServer.isClientConnected(clientAddress)) {
+      return Result.failure("客户端已断开连接");
     }
 
     try {
       // 直接向指定客户端请求线程池数据
-      Object result = adminServer.requestToSpecificClient(clientId,
+      Object result = adminServer.requestToSpecificClient(clientAddress,
           org.dromara.dynamictp.common.em.AdminRequestTypeEnum.EXECUTOR_MONITOR, null);
 
       List<ThreadPoolStats> clientThreadPools = new ArrayList<>();
@@ -93,26 +100,33 @@ public class MonThreadPoolController {
 
       return Result.data(page);
     } catch (Exception e) {
-      log.error("获取客户端线程池数据失败，clientId={}", clientId, e);
+      log.error("获取客户端线程池数据失败，clientName={}, clientAddress={}", clientName, clientAddress, e);
       return Result.failure("获取客户端线程池数据失败: " + e.getMessage());
     }
   }
 
-  @GetMapping("/{clientId}/statistics")
+  @GetMapping("/{clientName}/statistics")
   @SaCheckPermission("mon:thread_pool:statistics")
   @Operation(operationId = "2", summary = "按客户端获取线程池统计数据")
+  @RepeatSubmit(interval = -1)
   public Result<ThreadPoolStats> getThreadPoolStatisticsByClient(
-      @Parameter(description = "客户端ID") @PathVariable String clientId) {
-    log.info("按客户端获取线程池统计数据，clientId={}", clientId);
+      @Parameter(description = "客户端名称") @PathVariable String clientName) {
+    log.info("按客户端获取线程池统计数据，clientName={}", clientName);
 
-    // 验证客户端是否存在
-    if (!adminServer.getConnectedClients().contains(clientId)) {
+    // 根据客户端名称获取客户端地址
+    String clientAddress = adminServer.getClientAddressByName(clientName);
+    if (clientAddress == null) {
       return Result.failure("客户端不存在或已断开连接");
+    }
+
+    // 验证客户端是否仍然连接
+    if (!adminServer.isClientConnected(clientAddress)) {
+      return Result.failure("客户端已断开连接");
     }
 
     try {
       // 直接向指定客户端请求线程池数据
-      Object result = adminServer.requestToSpecificClient(clientId,
+      Object result = adminServer.requestToSpecificClient(clientAddress,
           org.dromara.dynamictp.common.em.AdminRequestTypeEnum.EXECUTOR_MONITOR, null);
 
       List<ThreadPoolStats> clientThreadPools = new ArrayList<>();
@@ -134,8 +148,8 @@ public class MonThreadPoolController {
 
       // 创建汇总统计数据
       ThreadPoolStats statistics = new ThreadPoolStats();
-      statistics.setPoolName("客户端汇总-" + clientId);
-      statistics.setPoolAliasName("Client Summary - " + clientId);
+      statistics.setPoolName("客户端汇总-" + clientName);
+      statistics.setPoolAliasName("Client Summary - " + clientName);
 
       // 计算汇总数据
       int totalPools = clientThreadPools.size();
@@ -152,26 +166,33 @@ public class MonThreadPoolController {
 
       return Result.data(statistics);
     } catch (Exception e) {
-      log.error("获取客户端线程池数据失败，clientId={}", clientId, e);
+      log.error("获取客户端线程池数据失败，clientName={}, clientAddress={}", clientName, clientAddress, e);
       return Result.failure("获取客户端线程池数据失败: " + e.getMessage());
     }
   }
 
-  @GetMapping("/{clientId}/metrics")
+  @GetMapping("/{clientName}/metrics")
   @SaCheckPermission("mon:thread_pool:metrics")
   @Operation(operationId = "3", summary = "按客户端获取线程池实时指标")
+  @RepeatSubmit(interval = -1)
   public Result<List<ThreadPoolStats>> getThreadPoolMetricsByClient(
-      @Parameter(description = "客户端ID") @PathVariable String clientId) {
-    log.info("按客户端获取线程池实时指标，clientId={}", clientId);
+      @Parameter(description = "客户端名称") @PathVariable String clientName) {
+    log.info("按客户端获取线程池实时指标，clientName={}", clientName);
 
-    // 验证客户端是否存在
-    if (!adminServer.getConnectedClients().contains(clientId)) {
+    // 根据客户端名称获取客户端地址
+    String clientAddress = adminServer.getClientAddressByName(clientName);
+    if (clientAddress == null) {
       return Result.failure("客户端不存在或已断开连接");
+    }
+
+    // 验证客户端是否仍然连接
+    if (!adminServer.isClientConnected(clientAddress)) {
+      return Result.failure("客户端已断开连接");
     }
 
     try {
       // 直接向指定客户端请求线程池数据
-      Object result = adminServer.requestToSpecificClient(clientId,
+      Object result = adminServer.requestToSpecificClient(clientAddress,
           org.dromara.dynamictp.common.em.AdminRequestTypeEnum.EXECUTOR_MONITOR, null);
 
       if (result instanceof org.dromara.dynamictp.common.entity.AdminRequestBody) {
@@ -191,7 +212,7 @@ public class MonThreadPoolController {
 
       return Result.data(new ArrayList<>());
     } catch (Exception e) {
-      log.error("获取客户端线程池数据失败，clientId={}", clientId, e);
+      log.error("获取客户端线程池数据失败，clientName={}, clientAddress={}", clientName, clientAddress, e);
       return Result.failure("获取客户端线程池数据失败: " + e.getMessage());
     }
   }

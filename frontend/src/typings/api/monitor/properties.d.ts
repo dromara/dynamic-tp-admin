@@ -38,8 +38,6 @@ declare namespace Api {
       rejectCount: number;
       /** 拒绝策略名称 */
       rejectHandlerName: string;
-      /** 是否DtpExecutor线程池 */
-      dynamic: boolean;
       /** 执行超时任务数量 */
       runTimeoutCount: number;
       /** 在队列等待超时任务数量 */
@@ -70,9 +68,7 @@ declare namespace Api {
     type ThreadPoolList = Common.PaginatingQueryRecord<ThreadPool>;
 
     /** ThreadPool Search Params */
-    type ThreadPoolSearchParams = CommonType.RecordNullable<
-      Pick<Api.Monitor.ThreadPool, 'poolName' | 'queueType' | 'dynamic'> & Api.Common.CommonSearchParams
-    >;
+    type ThreadPoolSearchParams = CommonType.RecordNullable<Pick<Api.Monitor.ThreadPool, 'poolName' | 'queueType'> & Api.Common.CommonSearchParams>;
 
     /** ThreadPool Statistics - 使用ThreadPool作为统计数据 */
     type ThreadPoolStatistics = ThreadPool;

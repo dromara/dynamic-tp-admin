@@ -50,28 +50,20 @@ const columns = [
   { key: 'maxRt', title: '最大耗时(ms)', width: 120 },
   { key: 'minRt', title: '最小耗时(ms)', width: 120 },
   { key: 'runTimeoutCount', title: '执行超时数', width: 100 },
-  { key: 'queueTimeoutCount', title: '队列超时数', width: 100 },
-  {
-    key: 'dynamic',
-    title: '类型',
-    width: 100,
-    render: (row: any) => {
-      return h('span', {}, row.dynamic ? '动态线程池' : '普通线程池');
-    }
-  }
+  { key: 'queueTimeoutCount', title: '队列超时数', width: 100 }
 ];
 </script>
 
 <template>
-  <NCard title="线程池详情" :bordered="false" class="card-wrapper">
-    <NDataTable
-      :loading="loading"
-      :data="threadPools"
-      :columns="columns"
-      :pagination="{ pageSize: 10 }"
-      size="small"
-      striped
-      :scroll-x="1200"
-    />
+  <NCard title="线程池详情"
+         :bordered="false"
+         class="card-wrapper">
+    <NDataTable :loading="loading"
+                :data="threadPools"
+                :columns="columns"
+                :pagination="{ pageSize: 10 }"
+                size="small"
+                striped
+                :scroll-x="1200" />
   </NCard>
 </template>

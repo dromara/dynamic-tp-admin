@@ -114,34 +114,56 @@ watch(visible, () => {
 </script>
 
 <template>
-  <NDrawer v-model:show="visible" display-directive="show" :width="360">
-    <NDrawerContent :title="title" :native-scrollbar="false" closable>
-      <NForm ref="formRef" :model="model" :rules="rules">
-        <NFormItem :label="$t('page.manage.orgUnits.name')" path="name">
-          <NInput v-model:value="model.name" :placeholder="$t('page.manage.orgUnits.form.name')" />
+  <NDrawer v-model:show="visible"
+           display-directive="show"
+           :width="360">
+    <NDrawerContent :title="title"
+                    :native-scrollbar="false"
+                    closable>
+      <NForm ref="formRef"
+             :model="model"
+             :rules="rules">
+        <NFormItem :label="$t('page.manage.orgUnits.name')"
+                   path="name">
+          <NInput v-model:value="model.name"
+                  :placeholder="$t('page.manage.orgUnits.form.name')" />
         </NFormItem>
-        <NFormItem :label="$t('page.manage.orgUnits.code')" path="code">
-          <NInput v-model:value="model.code" :placeholder="$t('page.manage.orgUnits.form.code')" />
+        <NFormItem :label="$t('page.manage.orgUnits.code')"
+                   path="code">
+          <NInput v-model:value="model.code"
+                  :placeholder="$t('page.manage.orgUnits.form.code')" />
         </NFormItem>
-        <NFormItem :label="$t('page.manage.orgUnits.abbr')" path="abbr">
-          <NInput v-model:value="model.abbr" :placeholder="$t('page.manage.orgUnits.form.abbr')" />
+        <NFormItem :label="$t('page.manage.orgUnits.abbr')"
+                   path="abbr">
+          <NInput v-model:value="model.abbr"
+                  :placeholder="$t('page.manage.orgUnits.form.abbr')" />
         </NFormItem>
-        <NFormItem :label="$t('page.manage.orgUnits.status')" path="status">
+        <NFormItem :label="$t('page.manage.orgUnits.status')"
+                   path="status">
           <NRadioGroup v-model:value="model.status">
-            <NRadio v-for="item in dictOptions('status')" :key="item.value" :value="item.value" :label="item.label" />
+            <NRadio v-for="item in dictOptions('status')"
+                    :key="item.value"
+                    :value="item.value"
+                    :label="item.label" />
           </NRadioGroup>
         </NFormItem>
-        <NFormItem :label="$t('page.manage.orgUnits.sort')" path="sort">
-          <NInputNumber v-model:value="model.sort" :placeholder="$t('page.manage.orgUnits.form.sort')" />
+        <NFormItem :label="$t('page.manage.orgUnits.sort')"
+                   path="sort">
+          <NInputNumber v-model:value="model.sort"
+                        :placeholder="$t('page.manage.orgUnits.form.sort')" />
         </NFormItem>
-        <NFormItem :label="$t('page.manage.orgUnits.description')" path="description">
-          <NInput v-model:value="model.description" :placeholder="$t('page.manage.orgUnits.form.description')" />
+        <NFormItem :label="$t('page.manage.orgUnits.description')"
+                   path="description">
+          <NInput v-model:value="model.description"
+                  :placeholder="$t('page.manage.orgUnits.form.description')" />
         </NFormItem>
       </NForm>
       <template #footer>
         <NSpace>
-          <NButton quaternary @click="closeDrawer">{{ $t('common.cancel') }}</NButton>
-          <NButton type="primary" @click="handleSubmit">{{ $t('common.confirm') }}</NButton>
+          <NButton quaternary
+                   @click="closeDrawer">{{ $t('common.cancel') }}</NButton>
+          <NButton type="primary"
+                   @click="handleSubmit">{{ $t('common.confirm') }}</NButton>
         </NSpace>
       </template>
     </NDrawerContent>

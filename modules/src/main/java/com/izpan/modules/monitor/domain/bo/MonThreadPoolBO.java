@@ -23,9 +23,6 @@ public class MonThreadPoolBO {
   @Schema(description = "队列类型")
   private String queueType;
 
-  @Schema(description = "是否动态线程池")
-  private Boolean dynamic;
-
   @Schema(description = "线程池状态")
   private String poolStatus;
 
