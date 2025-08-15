@@ -2,6 +2,7 @@ package com.izpan.admin.controller.manager;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.izpan.common.api.Result;
+import com.izpan.infrastructure.annotation.RepeatSubmit;
 import com.izpan.infrastructure.page.PageQuery;
 import com.izpan.modules.manager.domain.bo.ManClientBO;
 import com.izpan.modules.manager.facade.IManClientFacade;
@@ -40,6 +41,7 @@ public class ManClientController {
   @GetMapping
   @SaCheckPermission("man:client:query")
   @Operation(operationId = "1", summary = "查询客户端")
+  @RepeatSubmit(interval = -1)
   public Result<Object> queryClient(
       @Parameter(description = "查询类型：page-分页查询, detail-详情查询, online-在线客户端, unresponsive-无响应客户端") @RequestParam(defaultValue = "page") String type,
       @Parameter(description = "分页参数") PageQuery pageQuery,
@@ -86,6 +88,7 @@ public class ManClientController {
   @PutMapping
   @SaCheckPermission("man:client:update")
   @Operation(operationId = "3", summary = "更新客户端")
+  @RepeatSubmit(interval = -1)
   public Result<Boolean> updateClient(
       @Parameter(description = "更新类型：info-基本信息, status-状态更新, connect-连接状态") @RequestParam(defaultValue = "info") String action,
       @Parameter(description = "客户端信息") @RequestBody ManClientBO manClientBO,
@@ -186,6 +189,7 @@ public class ManClientController {
   @PostMapping("/connection")
   @SaCheckPermission("man:client:connection")
   @Operation(operationId = "5", summary = "处理客户端连接")
+  @RepeatSubmit(interval = -1)
   public Result<Boolean> handleClientConnection(
       @Parameter(description = "客户端连接信息") @RequestBody ManClientBO manClientBO) {
 

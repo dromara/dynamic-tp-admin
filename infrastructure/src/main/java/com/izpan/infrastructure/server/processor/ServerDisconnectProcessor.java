@@ -38,10 +38,10 @@ public class ServerDisconnectProcessor implements ConnectionEventProcessor {
       clientName = remoteAddress;
     }
 
-    // 从连接列表中移除断开的客户端
     serverConnectProcessor.removeClientConnection(clientName);
 
-    // 清理属性缓存
-    serverAttributeProcessor.getAttributes().remove(remoteAddress);
+    if (serverAttributeProcessor.getAttributes().containsKey(remoteAddress)) {
+      serverAttributeProcessor.getAttributes().remove(remoteAddress);
+    }
   }
 }

@@ -71,8 +71,6 @@ const handleRefresh = () => {
                size="small"
                :loading="refreshing"
                @click="handleRefresh">
-        <SvgIcon icon="ic:round-refresh"
-                 class="mr-1" />
         刷新数据
       </NButton>
     </template>

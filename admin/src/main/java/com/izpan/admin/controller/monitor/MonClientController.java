@@ -6,6 +6,7 @@ import com.izpan.common.api.Result;
 import com.izpan.infrastructure.server.AdminServer;
 import com.izpan.modules.manager.domain.entity.ManClient;
 import com.izpan.modules.manager.facade.IManClientFacade;
+import com.izpan.infrastructure.annotation.RepeatSubmit;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -51,6 +52,7 @@ public class MonClientController {
   @GetMapping("/clients")
   @SaCheckPermission("mon:client:list")
   @Operation(operationId = "1", summary = "获取客户端列表")
+  @RepeatSubmit(interval = -1)
   public Result<List<Map<String, Object>>> getClients() {
     log.info("获取客户端列表");
     Set<String> connectedClientAddresses = adminServer.getConnectedClientAddresses();
@@ -145,6 +147,7 @@ public class MonClientController {
   @GetMapping("/mon_client/count")
   @SaCheckPermission("mon:client:count")
   @Operation(operationId = "2", summary = "获取连接的客户端数量")
+  @RepeatSubmit(interval = -1)
   public Result<Integer> getConnectedClientCount() {
     log.info("获取连接的客户端数量");
     int clientCount = adminServer.getConnectedClientCount();
@@ -154,6 +157,7 @@ public class MonClientController {
   @GetMapping("/mon_client/list")
   @SaCheckPermission("mon:client:list")
   @Operation(operationId = "3", summary = "获取连接的客户端列表")
+  @RepeatSubmit(interval = -1)
   public Result<Set<String>> getConnectedClients() {
     log.info("获取连接的客户端列表");
     Set<String> connectedClients = adminServer.getConnectedClients();
@@ -163,6 +167,7 @@ public class MonClientController {
   @GetMapping("/mon_client/info")
   @SaCheckPermission("mon:client:info")
   @Operation(operationId = "4", summary = "获取客户端连接详细信息")
+  @RepeatSubmit(interval = -1)
   public Result<Map<String, Object>> getClientInfo() {
     log.info("获取客户端连接详细信息");
     Map<String, Object> result = new HashMap<>();

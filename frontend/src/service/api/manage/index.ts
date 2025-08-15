@@ -7,3 +7,5 @@ export * from './org-units';
 export * from './dict';
 export * from './notice';
 export * from './data-scope';
+export * from './thread-pool';
+export * from './notify-platform';

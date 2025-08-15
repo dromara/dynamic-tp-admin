@@ -211,8 +211,9 @@ const local: App.I18n.Schema = {
     manage_notice: '通知公告',
     properties: '配置管理',
     'thread-pool': '线程池管理',
+    'notify-platform': '告警渠道管理',
     monitor: '监控管理',
-    'monitor_thread-pool': '线程池监控',
+
     monitor_thread_pool_detail: '线程池详情',
     monitor_system: '系统监控',
     monitor_cache: '缓存监控',

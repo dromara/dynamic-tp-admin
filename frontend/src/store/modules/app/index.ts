@@ -37,7 +37,7 @@ export const useAppStore = defineStore(SetupStoreId.App, () => {
 
     const d = themeStore.page.animate ? duration : 40;
 
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
       setTimeout(resolve, d);
     });
 
@@ -85,7 +85,7 @@ export const useAppStore = defineStore(SetupStoreId.App, () => {
     // watch isMobile, if is mobile, collapse sider
     watch(
       isMobile,
-      newValue => {
+      (newValue) => {
         if (newValue) {
           // backup theme setting before is mobile
           localStg.set('backupThemeSettingBeforeIsMobile', {

@@ -8,3 +8,4 @@ declare namespace Api {
 }
 
 export * from './thread-pool';
+export * from './notify-platform';

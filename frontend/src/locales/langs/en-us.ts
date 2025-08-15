@@ -211,8 +211,9 @@ const local: App.I18n.Schema = {
     manage_notice: 'Notice Announcement',
     properties: 'Properties Manage',
     'thread-pool': 'Thread Pool Management',
+    'notify-platform': 'Notify Platform Management',
     monitor: 'Monitor Manage',
-    'monitor_thread-pool': 'Thread Pool Monitor',
+
     monitor_thread_pool_detail: 'Thread Pool Detail',
     monitor_system: 'System Monitor',
     monitor_cache: 'Cache Monitor',

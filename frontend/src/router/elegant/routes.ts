@@ -463,6 +463,17 @@ export const generatedRoutes: GeneratedRoute[] = [
     ]
   },
   {
+    name: 'notify-platform',
+    path: '/notify-platform',
+    component: 'layout.base$view.notify-platform',
+    meta: {
+      title: 'notify-platform',
+      i18nKey: 'route.notify-platform',
+      icon: 'mdi:bell-alert',
+      order: 6
+    }
+  },
+  {
     name: 'thread-pool',
     path: '/thread-pool',
     component: 'layout.base$view.thread-pool',

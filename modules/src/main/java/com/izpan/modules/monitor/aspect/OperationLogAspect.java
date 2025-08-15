@@ -109,7 +109,8 @@ public class OperationLogAspect {
         List<String> arguments = Lists.newArrayList();
         // 过滤报异常的参数
         for (Object arg : args) {
-            if (arg instanceof ServletRequest || arg instanceof ServletResponse || arg instanceof MultipartFile || arg instanceof MultipartFile[]) {
+            if (arg instanceof ServletRequest || arg instanceof ServletResponse || arg instanceof MultipartFile
+                    || arg instanceof MultipartFile[]) {
                 continue;
             }
             arguments.add(GsonUtil.toJson(arg));
@@ -144,7 +145,9 @@ public class OperationLogAspect {
         }
 
         // -1 则代表不需要防重复提交
-        if (interval == -1) return;
+        if (interval == -1) {
+            return;
+        }
         String repeatSubmitKey = generateKey(params);
         if (RedisUtil.exists(repeatSubmitKey)) {
             throw new BizException(message);

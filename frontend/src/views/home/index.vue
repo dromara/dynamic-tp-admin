@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { useMessage } from 'naive-ui';
 import { fetchGetThreadPoolListByClient, fetchGetThreadPoolMetricsByClient, fetchGetThreadPoolStatisticsByClient } from '@/service/api';
 import { fetchCheckClientStatus, fetchGetUnresponsiveClients } from '@/service/api/manage/client';
@@ -31,25 +31,87 @@ const statistics = ref<Api.Monitor.ThreadPoolStatistics>();
 const threadPools = ref<Api.Monitor.ThreadPool[]>([]);
 // 实时指标数据
 const metrics = ref<Api.Monitor.ThreadPoolMetrics[]>([]);
-// 时间序列数据 - 存储历史数据用于折线图
-const timeSeriesData = ref<{
-  timestamps: string[];
-  poolData: Record<
+// 时间序列数据 - 为每个客户端存储独立的历史数据
+const timeSeriesData = ref<
+  Record<
     string,
     {
-      corePoolSize: number[];
-      maximumPoolSize: number[];
-      poolSize: number[];
-      activeCount: number[];
-      queueSize: number[];
-      tps: number[];
-      avg: number[];
+      timestamps: string[];
+      poolData: Record<
+        string,
+        {
+          corePoolSize: number[];
+          maximumPoolSize: number[];
+          poolSize: number[];
+          activeCount: number[];
+          queueSize: number[];
+          tps: number[];
+          avg: number[];
+        }
+      >;
     }
-  >;
-}>({
-  timestamps: [],
-  poolData: {}
-});
+  >
+>({});
+
+// 缓存相关配置
+const CACHE_KEY = 'home_monitor_time_series_data';
+const CACHE_EXPIRE_TIME = 24 * 60 * 60 * 1000; // 24小时过期时间
+
+// 加载缓存的时间序列数据
+function loadCachedTimeSeriesData() {
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (cached) {
+      const { data, timestamp } = JSON.parse(cached);
+      // 检查缓存是否过期
+      if (Date.now() - timestamp < CACHE_EXPIRE_TIME) {
+        timeSeriesData.value = data;
+        console.log('从缓存恢复时间序列数据:', Object.keys(data));
+        return true;
+      } else {
+        // 缓存过期，清除
+        localStorage.removeItem(CACHE_KEY);
+        console.log('缓存已过期，已清除');
+      }
+    }
+  } catch (error) {
+    console.error('加载缓存数据失败:', error);
+    localStorage.removeItem(CACHE_KEY);
+  }
+  return false;
+}
+
+// 保存时间序列数据到缓存
+function saveTimeSeriesDataToCache() {
+  try {
+    const cacheData = {
+      data: timeSeriesData.value,
+      timestamp: Date.now()
+    };
+    localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+    console.log('时间序列数据已缓存');
+  } catch (error) {
+    console.error('保存缓存数据失败:', error);
+  }
+}
+
+// 清理过期的缓存数据
+function cleanupExpiredCache() {
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (cached) {
+      const { timestamp } = JSON.parse(cached);
+      if (Date.now() - timestamp >= CACHE_EXPIRE_TIME) {
+        localStorage.removeItem(CACHE_KEY);
+        console.log('清理过期缓存');
+      }
+    }
+  } catch (error) {
+    console.error('清理缓存失败:', error);
+    localStorage.removeItem(CACHE_KEY);
+  }
+}
+
 // 加载状态
 const loading = ref(false);
 
@@ -57,6 +119,8 @@ const loading = ref(false);
 let timer: NodeJS.Timeout;
 // 刷新状态
 const refreshing = ref(false);
+// 页面可见性状态
+const isPageVisible = ref(true);
 
 // 处理特殊值2147483647（Integer.MAX_VALUE）
 function processSpecialValue(value: number): number {
@@ -162,18 +226,24 @@ function updateTimeSeriesData() {
     second: '2-digit'
   });
 
+  // 获取当前客户端的时间序列数据
+  const currentClientData = timeSeriesData.value[clientStore.selectedClientName] || {
+    timestamps: [],
+    poolData: {}
+  };
+
   // 添加时间戳
-  timeSeriesData.value.timestamps.push(timestamp);
+  currentClientData.timestamps.push(timestamp);
 
   // 限制数据点数量，保留最近30个数据点
-  if (timeSeriesData.value.timestamps.length > 30) {
-    timeSeriesData.value.timestamps.shift();
+  if (currentClientData.timestamps.length > 30) {
+    currentClientData.timestamps.shift();
   }
 
   // 更新每个线程池的数据
   metrics.value.forEach((item: Api.Monitor.ThreadPoolMetrics) => {
-    if (!timeSeriesData.value.poolData[item.poolName]) {
-      timeSeriesData.value.poolData[item.poolName] = {
+    if (!currentClientData.poolData[item.poolName]) {
+      currentClientData.poolData[item.poolName] = {
         corePoolSize: [],
         maximumPoolSize: [],
         poolSize: [],
@@ -184,7 +254,7 @@ function updateTimeSeriesData() {
       };
     }
 
-    const poolData = timeSeriesData.value.poolData[item.poolName];
+    const poolData = currentClientData.poolData[item.poolName];
 
     // 添加数据点，对最大线程数和队列大小进行特殊处理
     poolData.corePoolSize.push(item.corePoolSize);
@@ -206,18 +276,34 @@ function updateTimeSeriesData() {
       poolData.avg.shift();
     }
   });
+
+  // 保存回数据结构
+  timeSeriesData.value[clientStore.selectedClientName] = currentClientData;
+
+  // 保存到本地缓存
+  saveTimeSeriesDataToCache();
 }
 
 // 处理客户端切换
 function handleClientChange(client: any) {
   selectedClient.value = client;
-  // 清空历史数据
-  timeSeriesData.value = {
-    timestamps: [],
-    poolData: {}
-  };
+  // 不清空历史数据，保持图表连续性
   // 重新加载数据
   initData();
+}
+
+// 自动选择第一个可用的客户端
+async function autoSelectFirstAvailableClient() {
+  if (clientStore.clients.length > 0 && !clientStore.selectedClientName) {
+    // 找到第一个在线的客户端
+    const firstOnlineClient = clientStore.clients.find((client) => client.status === 'online');
+    if (firstOnlineClient) {
+      clientStore.setSelectedClient(firstOnlineClient.clientName, firstOnlineClient);
+      selectedClient.value = firstOnlineClient;
+      // 自动加载数据
+      await initData();
+    }
+  }
 }
 
 // 初始化数据
@@ -274,15 +360,70 @@ function stopTimer() {
   }
 }
 
-onMounted(() => {
-  // 延迟初始化，等待客户端选择器加载完成
-  setTimeout(() => {
+// 处理页面可见性变化
+function handleVisibilityChange() {
+  if (document.hidden) {
+    // 页面隐藏，停止定时器
+    isPageVisible.value = false;
+    stopTimer();
+    console.log('页面隐藏，停止定时器');
+  } else {
+    // 页面显示，恢复定时器
+    isPageVisible.value = true;
+    if (clientStore.selectedClientName) {
+      startTimer();
+      console.log('页面显示，恢复定时器');
+    }
+  }
+}
+
+// 监听客户端选择变化，自动加载数据
+watch(
+  () => clientStore.selectedClientName,
+  async (newClientName) => {
+    if (newClientName && !selectedClient.value) {
+      // 找到对应的客户端信息
+      const client = clientStore.clients.find((c) => c.clientName === newClientName);
+      if (client) {
+        selectedClient.value = client;
+        // 自动加载数据
+        await initData();
+      }
+    }
+  }
+);
+
+onMounted(async () => {
+  // 清理过期缓存
+  cleanupExpiredCache();
+
+  // 尝试从缓存恢复时间序列数据
+  const hasCachedData = loadCachedTimeSeriesData();
+
+  // 等待客户端列表加载完成
+  await clientStore.getClientList();
+
+  // 自动选择第一个可用的客户端
+  await autoSelectFirstAvailableClient();
+
+  // 如果有缓存数据，直接使用；否则启动定时器获取新数据
+  if (hasCachedData && clientStore.selectedClientName) {
+    // 使用缓存数据，但启动定时器继续更新
     startTimer();
-  }, 1000);
+  } else {
+    // 没有缓存数据，需要初始化数据
+    await initData();
+    startTimer();
+  }
+
+  // 添加页面可见性监听器
+  document.addEventListener('visibilitychange', handleVisibilityChange);
 });
 
 onUnmounted(() => {
   stopTimer();
+  // 移除页面可见性监听器
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
 });
 </script>
 
@@ -300,14 +441,14 @@ onUnmounted(() => {
 
     <!-- 线程池线程数变化趋势 -->
     <ThreadUsageChart :metrics="metrics"
-                      :time-series-data="timeSeriesData" />
+                      :time-series-data="timeSeriesData[clientStore.selectedClientName] || { timestamps: [], poolData: {} }" />
 
     <!-- 队列使用情况 -->
     <QueueUsageChart :metrics="metrics" />
 
     <!-- 性能指标趋势 -->
     <PerformanceChart :metrics="metrics"
-                      :time-series-data="timeSeriesData" />
+                      :time-series-data="timeSeriesData[clientStore.selectedClientName] || { timestamps: [], poolData: {} }" />
 
     <!-- 响应时间百分位分布 -->
     <ResponseTimeChart :metrics="metrics" />

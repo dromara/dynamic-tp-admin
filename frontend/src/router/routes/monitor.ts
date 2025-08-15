@@ -16,17 +16,6 @@ export const monitorRoutes: ElegantConstRoute[] = [
     },
     children: [
       {
-        name: 'monitor_thread-pool',
-        path: '/monitor/thread-pool',
-        component: 'view.monitor_thread-pool_index',
-        meta: {
-          title: 'monitor_thread-pool',
-          i18nKey: 'route.monitor_thread-pool',
-          icon: 'mdi:server-network',
-          order: 1
-        }
-      },
-      {
         name: 'monitor_thread-pool_detail',
         path: '/monitor/thread-pool/detail/:poolName',
         component: 'view.monitor_thread-pool_detail',

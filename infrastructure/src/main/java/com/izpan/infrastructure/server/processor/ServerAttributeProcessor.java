@@ -23,17 +23,11 @@ public class ServerAttributeProcessor extends SyncUserProcessor<AttributeRequest
     @Override
     public Object handleRequest(BizContext bizCtx, AttributeRequestBody request) {
         String remoteAddress = bizCtx.getRemoteAddress();
-        attributes.putIfAbsent(remoteAddress, new ConcurrentHashMap<>());
-        attributes.get(remoteAddress).putAll(request.getAttributes());
+        Map<String, String> clientAttributes = attributes.computeIfAbsent(remoteAddress,
+                k -> new ConcurrentHashMap<>());
+        clientAttributes.putAll(request.getAttributes());
 
-        // 从属性中提取clientName，如果没有则使用remoteAddress作为备选
         String clientName = request.getAttributes().get("clientName");
-        if (clientName == null || clientName.trim().isEmpty()) {
-            clientName = remoteAddress;
-        }
-
-        // 在属性就绪后，回调连接处理器以使用clientName更新连接索引
-        // 现在直接从Connection中获取地址
         serverConnectProcessor.addClientConnection(clientName, bizCtx.getConnection());
         return null;
     }

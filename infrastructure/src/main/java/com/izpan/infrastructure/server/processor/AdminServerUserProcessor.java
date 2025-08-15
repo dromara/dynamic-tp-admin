@@ -1,21 +1,22 @@
 package com.izpan.infrastructure.server.processor;
 
 import com.alipay.remoting.BizContext;
-import com.alipay.remoting.Connection;
-import com.alipay.remoting.InvokeContext;
 import com.alipay.remoting.rpc.protocol.SyncUserProcessor;
+import com.izpan.infrastructure.server.handler.PropertiesHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.dromara.dynamictp.common.entity.AdminRequestBody;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 @Component
 public class AdminServerUserProcessor extends SyncUserProcessor<AdminRequestBody> {
+
+    @Autowired(required = false)
+    private PropertiesHandler propertiesHandler;
 
     private final ExecutorService executor;
 
@@ -54,19 +55,19 @@ public class AdminServerUserProcessor extends SyncUserProcessor<AdminRequestBody
                     bizContext.getClientTimeout(), clientAddress);
         }
 
-        return doHandleRequest(adminRequestBody);
+        return doHandleRequest(bizContext, adminRequestBody);
     }
 
-    private Object doHandleRequest(AdminRequestBody adminRequestBody) {
+    private Object doHandleRequest(BizContext bizContext, AdminRequestBody adminRequestBody) {
         switch (adminRequestBody.getRequestType()) {
             case EXECUTOR_MONITOR:
-                return handleExecutorMonitorRequest(adminRequestBody);
+                return handleExecutorMonitorRequest(bizContext, adminRequestBody);
             case EXECUTOR_REFRESH:
-                return handleExecutorRefreshRequest(adminRequestBody);
+                return handleExecutorRefreshRequest(bizContext, adminRequestBody);
             case ALARM_MANAGE:
-                return handleAlarmManageRequest(adminRequestBody);
+                return handleAlarmManageRequest(bizContext, adminRequestBody);
             case LOG_MANAGE:
-                return handleLogManageRequest(adminRequestBody);
+                return handleLogManageRequest(bizContext, adminRequestBody);
             default:
                 throw new IllegalArgumentException("DynamicTp admin request type "
                         + adminRequestBody.getRequestType().getValue() + " is not supported");
@@ -83,19 +84,21 @@ public class AdminServerUserProcessor extends SyncUserProcessor<AdminRequestBody
         return executor;
     }
 
-    private Object handleExecutorMonitorRequest(AdminRequestBody adminRequestBody) {
+    private Object handleExecutorMonitorRequest(BizContext bizContext, AdminRequestBody adminRequestBody) {
         return null;
     }
 
-    private Object handleExecutorRefreshRequest(AdminRequestBody adminRequestBody) {
+    private Object handleExecutorRefreshRequest(BizContext bizContext, AdminRequestBody adminRequestBody) {
+        String clientAddress = bizContext != null ? bizContext.getRemoteAddress() : "unknown";
+        log.info("处理线程池刷新请求，客户端地址: {}", clientAddress);
+        return propertiesHandler.convertConfigsToMap(clientAddress);
+    }
+
+    private Object handleAlarmManageRequest(BizContext bizContext, AdminRequestBody adminRequestBody) {
         return null;
     }
 
-    private Object handleAlarmManageRequest(AdminRequestBody adminRequestBody) {
-        return null;
-    }
-
-    private Object handleLogManageRequest(AdminRequestBody adminRequestBody) {
+    private Object handleLogManageRequest(BizContext bizContext, AdminRequestBody adminRequestBody) {
         return null;
     }
 

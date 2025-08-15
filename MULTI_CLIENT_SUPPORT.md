@@ -85,7 +85,7 @@ Set<String> clients = processor.getConnectedClients();
 String firstClient = processor.getFirstAvailableClient();
 
 // 手动移除客户端连接
-processor.removeClientConnection("192.168.1.100:8080");
+processor.removeClientConnection("测试客户端-001");
 ```
 
 ## 配置说明
@@ -127,17 +127,17 @@ server.invokeSync(clientAddress, requestBody, 30000);
 ### 连接事件日志
 
 ```
-INFO  - Client connected: 192.168.1.100:8080, total connected clients: 1
-INFO  - Client connected: 192.168.1.101:8080, total connected clients: 2
-INFO  - Client disconnected: 192.168.1.100:8080, remaining clients: 1
+INFO  - Client connected: 测试客户端-001, total connected clients: 1
+INFO  - Client connected: 测试客户端-002, total connected clients: 2
+INFO  - Client disconnected: 测试客户端-001, remaining clients: 1
 ```
 
 ### 请求处理日志
 
 ```
-INFO  - DynamicTp admin request received:EXECUTOR_MONITOR from client: 192.168.1.100:8080
-INFO  - Broadcasting request to 2 clients: [192.168.1.100:8080, 192.168.1.101:8080]
-DEBUG - Sending request to specific client: 192.168.1.100:8080
+INFO  - DynamicTp admin request received:EXECUTOR_MONITOR from client: 测试客户端-001
+INFO  - Broadcasting request to 2 clients: [测试客户端-001, 测试客户端-002]
+DEBUG - Sending request to specific client: 测试客户端-001
 ```
 
 ## 最佳实践

@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 线程池管理 VO 对象
@@ -76,4 +77,7 @@ public class ManThreadPoolVO {
 
   @Schema(description = "更新人")
   private Long updateUser;
+
+  @Schema(description = "通知配置列表")
+  private List<ManNotifyItemVO> notifyItems;
 }

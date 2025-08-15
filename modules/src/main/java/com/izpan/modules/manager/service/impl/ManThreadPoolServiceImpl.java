@@ -9,8 +9,12 @@ import com.izpan.infrastructure.page.PageQuery;
 import com.izpan.infrastructure.server.AdminServer;
 import com.izpan.modules.manager.domain.bo.ManThreadPoolBO;
 import com.izpan.modules.manager.domain.entity.ManThreadPool;
+import com.izpan.modules.manager.domain.entity.ManNotifyItem;
 import com.izpan.modules.manager.domain.vo.ManThreadPoolVO;
 import com.izpan.modules.manager.repository.mapper.ManThreadPoolMapper;
+import com.izpan.modules.manager.repository.mapper.ManNotifyItemMapper;
+import com.izpan.modules.manager.repository.mapper.ManNotifyPlatformMapper;
+import com.izpan.modules.manager.domain.entity.ManNotifyPlatform;
 import com.izpan.modules.manager.service.IManThreadPoolService;
 import lombok.extern.slf4j.Slf4j;
 import org.dromara.dynamictp.common.em.AdminRequestTypeEnum;
@@ -43,6 +47,12 @@ public class ManThreadPoolServiceImpl extends ServiceImpl<ManThreadPoolMapper, M
 
     @Resource
     private AdminServer adminServer;
+
+    @Resource
+    private ManNotifyItemMapper manNotifyItemMapper;
+
+    @Resource
+    private ManNotifyPlatformMapper manNotifyPlatformMapper;
 
     @Override
     public IPage<ManThreadPool> listManagerThreadPoolPage(PageQuery pageQuery,
@@ -111,37 +121,34 @@ public class ManThreadPoolServiceImpl extends ServiceImpl<ManThreadPoolMapper, M
     }
 
     @Override
-    public Boolean refreshThreadPool(String clientId) {
-        String clientName = adminServer.getClientName(clientId);
+    public Boolean refreshThreadPool(String clientAddress) {
         try {
-            // 验证客户端是否存在
-            if (!adminServer.isClientConnected(clientId)) {
-                log.warn("客户端 {} 不存在或已断开连接", clientId);
+            // 检查客户端是否已连接
+            if (!adminServer.isClientConnected(clientAddress)) {
+                log.warn("客户端 {} 未连接", clientAddress);
                 return false;
             }
 
-            // 获取该客户端的线程池
-            List<ManThreadPool> threadPoolConfigs = getByClientName(clientName);
-            if (threadPoolConfigs.isEmpty()) {
-                log.warn("客户端 {} 没有配置的线程池", clientName);
+            // 获取该客户端的线程池配置
+            String clientName = adminServer.getClientName(clientAddress);
+            List<ManThreadPool> configs = getByClientName(clientName);
+
+            if (configs.isEmpty()) {
+                log.warn("客户端 {} 没有找到线程池配置", clientAddress);
                 return false;
             }
 
-            // 将配置直接转换为Map格式，以便传递给AdminRefresher.refresh方法
-            Map<Object, Object> propertiesMap = convertConfigsToMap(threadPoolConfigs);
+            // 转换为Map格式
+            Map<Object, Object> properties = convertConfigsToMap(configs);
 
-            // 向指定客户端发送刷新请求
-            Object result = adminServer.requestToSpecificClient(clientId,
-                    AdminRequestTypeEnum.EXECUTOR_REFRESH, propertiesMap);
+            // 发送刷新请求
+            Object result = adminServer.requestToSpecificClient(clientAddress,
+                    AdminRequestTypeEnum.EXECUTOR_REFRESH, properties);
 
-            log.info("成功向客户端 {} 发送线程池刷新请求", clientName);
+            log.info("客户端 {} 线程池刷新成功", clientAddress);
             return true;
-
-        } catch (RemotingException | InterruptedException e) {
-            log.error("向客户端 {} 发送线程池刷新请求失败: {}", clientName, e.getMessage(), e);
-            return false;
         } catch (Exception e) {
-            log.error("刷新线程池时发生异常: {}", e.getMessage(), e);
+            log.error("刷新客户端 {} 的线程池失败: {}", clientAddress, e.getMessage(), e);
             return false;
         }
     }
@@ -209,6 +216,7 @@ public class ManThreadPoolServiceImpl extends ServiceImpl<ManThreadPoolMapper, M
      * 将ManThreadPool配置列表转换为Map格式，以便传递给AdminRefresher.refresh方法
      * 格式参照：dynamictp.executors[0].threadPoolName,
      * dynamictp.executors[1].executorType等
+     * 同时包含notifyitem及相关平台配置
      * 
      * @param threadPoolConfigs ManThreadPool配置列表
      * @return Map格式的配置
@@ -221,6 +229,7 @@ public class ManThreadPoolServiceImpl extends ServiceImpl<ManThreadPoolMapper, M
             ManThreadPool config = threadPoolConfigs.get(i);
             String prefix = "dynamictp.executors[" + i + "].";
 
+            // 添加线程池基本配置
             properties.put(prefix + "threadPoolName", config.getThreadPoolName());
             properties.put(prefix + "threadPoolAliasName", config.getThreadPoolAliasName());
             properties.put(prefix + "corePoolSize", config.getCorePoolSize());
@@ -238,8 +247,99 @@ public class ManThreadPoolServiceImpl extends ServiceImpl<ManThreadPoolMapper, M
             properties.put(prefix + "waitForTasksToCompleteOnShutdown", config.getWaitForTasksToCompleteOnShutdown());
             properties.put(prefix + "awaitTerminationSeconds", config.getAwaitTerminationSeconds());
             properties.put(prefix + "preStartAllCoreThreads", config.getPreStartAllCoreThreads());
+
+            // 添加notifyitem及相关平台配置
+            addNotifyItemsToProperties(properties, prefix, config.getId());
         }
 
         return properties;
+    }
+
+    /**
+     * 将通知配置添加到properties中
+     * 
+     * @param properties     配置Map
+     * @param executorPrefix 执行器前缀
+     * @param threadPoolId   线程池ID
+     */
+    private void addNotifyItemsToProperties(Map<Object, Object> properties, String executorPrefix, Long threadPoolId) {
+        try {
+            // 查询该线程池的通知配置
+            LambdaQueryWrapper<ManNotifyItem> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(ManNotifyItem::getThreadPoolId, threadPoolId)
+                    .eq(ManNotifyItem::getStatus, "ENABLE")
+                    .eq(ManNotifyItem::getEnabled, true);
+
+            List<ManNotifyItem> notifyItems = manNotifyItemMapper.selectList(queryWrapper);
+
+            if (notifyItems != null && !notifyItems.isEmpty()) {
+                // 添加通知配置
+                for (int j = 0; j < notifyItems.size(); j++) {
+                    ManNotifyItem notifyItem = notifyItems.get(j);
+                    String notifyPrefix = executorPrefix + "notifyItems[" + j + "].";
+
+                    properties.put(notifyPrefix + "type", notifyItem.getType());
+                    properties.put(notifyPrefix + "enabled", notifyItem.getEnabled());
+                    properties.put(notifyPrefix + "threshold", notifyItem.getThreshold());
+                    properties.put(notifyPrefix + "count", notifyItem.getCount());
+                    properties.put(notifyPrefix + "period", notifyItem.getPeriod());
+                    properties.put(notifyPrefix + "silencePeriod", notifyItem.getSilencePeriod());
+                    properties.put(notifyPrefix + "clusterLimit", notifyItem.getClusterLimit());
+                    properties.put(notifyPrefix + "receivers", notifyItem.getReceivers());
+
+                    // 处理通知平台ID列表和平台信息
+                    if (notifyItem.getPlatformIds() != null && !notifyItem.getPlatformIds().trim().isEmpty()) {
+                        properties.put(notifyPrefix + "platformIds", notifyItem.getPlatformIds());
+
+                        // 添加平台详细信息
+                        addPlatformDetailsToProperties(properties, notifyPrefix, notifyItem.getPlatformIds());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("获取线程池 {} 的通知配置失败: {}", threadPoolId, e.getMessage());
+        }
+    }
+
+    /**
+     * 将通知平台详细信息添加到properties中
+     * 
+     * @param properties   配置Map
+     * @param notifyPrefix 通知配置前缀
+     * @param platformIds  平台ID列表（JSON格式字符串）
+     */
+    private void addPlatformDetailsToProperties(Map<Object, Object> properties, String notifyPrefix,
+            String platformIds) {
+        try {
+            // 解析平台ID列表（假设是JSON格式或逗号分隔）
+            String[] platformIdArray = platformIds.split(",");
+
+            for (int k = 0; k < platformIdArray.length; k++) {
+                String platformId = platformIdArray[k].trim();
+                if (!platformId.isEmpty()) {
+                    String platformPrefix = notifyPrefix + "platforms[" + k + "].";
+
+                    // 查询平台详细信息
+                    LambdaQueryWrapper<ManNotifyPlatform> platformQueryWrapper = new LambdaQueryWrapper<>();
+                    platformQueryWrapper.eq(ManNotifyPlatform::getPlatformId, platformId)
+                            .eq(ManNotifyPlatform::getStatus, "ENABLE");
+
+                    ManNotifyPlatform platform = manNotifyPlatformMapper.selectOne(platformQueryWrapper);
+
+                    if (platform != null) {
+                        properties.put(platformPrefix + "platformId", platform.getPlatformId());
+                        properties.put(platformPrefix + "platform", platform.getPlatform());
+                        properties.put(platformPrefix + "webhook", platform.getWebhook());
+                        properties.put(platformPrefix + "receivers", platform.getReceivers());
+                        properties.put(platformPrefix + "timeout", platform.getTimeout());
+                        properties.put(platformPrefix + "proxyType", platform.getProxyType());
+                        properties.put(platformPrefix + "proxyHost", platform.getProxyHost());
+                        properties.put(platformPrefix + "proxyPort", platform.getProxyPort());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("处理通知平台信息失败: {}", e.getMessage());
+        }
     }
 }

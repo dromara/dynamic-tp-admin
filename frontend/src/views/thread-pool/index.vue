@@ -14,6 +14,10 @@ import {
   NSelect,
   NSpace,
   NSwitch,
+  NTabs,
+  NTabPane,
+  NDescriptions,
+  NDescriptionsItem,
   useDialog,
   useMessage
 } from 'naive-ui';
@@ -24,8 +28,11 @@ import {
   fetchRefreshThreadPool,
   fetchUpdateThreadPool
 } from '@/service/api/manage/thread-pool';
+import { fetchGetNotifyPlatformByClient } from '@/service/api/manage/notify-platform';
 import { useClientStore } from '@/store/modules/client';
 import { ClientSelector } from '../home/modules';
+import NotifyConfig from './components/NotifyConfig.vue';
+import { formatDateTime } from '@/utils/date';
 
 defineOptions({
   name: 'ThreadPoolPage'
@@ -54,6 +61,22 @@ const isEdit = ref(false);
 const showDetailModal = ref(false);
 const detailData = ref<any>(null);
 
+// 通知配置接口
+interface NotifyItem {
+  id?: number;
+  type: string;
+  enabled: boolean;
+  threshold: number;
+  count: number;
+  period: number;
+  silencePeriod: number;
+  clusterLimit: number;
+  receivers: string;
+  platformIds: string[];
+  status: string;
+  remark?: string;
+}
+
 // 表单相关
 interface ThreadPoolForm {
   id?: number | string;
@@ -77,6 +100,7 @@ interface ThreadPoolForm {
   clientId: string | number | undefined;
   status: 'ENABLE' | 'DISABLE';
   remark: string;
+  notifyItems: NotifyItem[];
 }
 
 const formRef = ref();
@@ -100,7 +124,8 @@ const formModel = ref<ThreadPoolForm>({
   preStartAllCoreThreads: false,
   clientId: '',
   status: 'ENABLE',
-  remark: ''
+  remark: '',
+  notifyItems: []
 });
 
 // 数字字段通用校验器，解决 NInputNumber 在输入中间态导致的“未输入”提示
@@ -173,6 +198,31 @@ const statusOptions = [
   { label: '禁用', value: 'DISABLE' }
 ];
 
+// 通知平台选项（动态从API获取）
+const platformOptions = ref<Array<{ label: string; value: string }>>([]);
+
+// 获取告警渠道数据
+async function loadNotifyPlatforms() {
+  if (!selectedClientName.value) {
+    return;
+  }
+
+  try {
+    const { error, data } = await fetchGetNotifyPlatformByClient(selectedClientName.value);
+    if (!error && data) {
+      // 转换为通知配置组件需要的格式
+      platformOptions.value = data
+        .filter((platform) => platform.status === 'ENABLE') // 只显示启用的平台
+        .map((platform) => ({
+          label: platform.platform,
+          value: platform.platformId
+        }));
+    }
+  } catch (error) {
+    console.error('获取告警渠道失败:', error);
+  }
+}
+
 // 表格列配置
 const columns = [
   { key: 'threadPoolName', title: '线程池名称', width: 150 },
@@ -195,7 +245,12 @@ const columns = [
   { key: 'awaitTerminationSeconds', title: '等待终止(s)', width: 120 },
   { key: 'preStartAllCoreThreads', title: '预启动核心线程', width: 140, render: (row: any) => (row.preStartAllCoreThreads ? '是' : '否') },
   { key: 'status', title: '状态', width: 80, render: (row: any) => (row.status === 'ENABLE' ? '启用' : '禁用') },
-  { key: 'createTime', title: '创建时间', width: 150 },
+  {
+    key: 'createTime',
+    title: '创建时间',
+    width: 150,
+    render: (row: any) => formatDateTime(row.createTime)
+  },
   {
     key: 'actions',
     title: '操作',
@@ -279,8 +334,23 @@ async function loadData() {
   }
 }
 
+// 自动选择第一个可用的客户端
+async function autoSelectFirstAvailableClient() {
+  if (clientStore.clients.length > 0 && !clientStore.selectedClientName) {
+    // 找到第一个在线的客户端
+    const firstOnlineClient = clientStore.clients.find((client) => client.status === 'online');
+    if (firstOnlineClient) {
+      clientStore.setSelectedClient(firstOnlineClient.clientName, firstOnlineClient);
+      selectedClient.value = firstOnlineClient;
+      selectedClientName.value = firstOnlineClient.clientName;
+      // 自动加载数据
+      await Promise.all([loadData(), loadNotifyPlatforms()]);
+    }
+  }
+}
+
 // 处理客户端切换
-function handleClientChange(client: any) {
+async function handleClientChange(client: any) {
   selectedClient.value = client;
   selectedClientName.value = client.clientName;
   // 移除冗余的全局状态更新，因为 ClientSelector 组件已经处理了
@@ -288,7 +358,7 @@ function handleClientChange(client: any) {
   // 重置分页
   pagination.value.page = 1;
   // 重新加载数据
-  loadData();
+  await Promise.all([loadData(), loadNotifyPlatforms()]);
 }
 
 // 同步客户端
@@ -343,7 +413,8 @@ function handleAdd() {
     preStartAllCoreThreads: false,
     clientId: selectedClient?.value?.clientId,
     status: 'ENABLE',
-    remark: ''
+    remark: '',
+    notifyItems: []
   };
 
   showModal.value = true;
@@ -362,7 +433,10 @@ function handleEdit(row: any) {
   modalTitle.value = '编辑线程池';
 
   // 使用行数据填充表单
-  formModel.value = { ...row };
+  formModel.value = {
+    ...row,
+    notifyItems: row.notifyItems || []
+  };
 
   showModal.value = true;
 }
@@ -421,7 +495,8 @@ async function handleSubmit() {
         preStartAllCoreThreads: formModel.value.preStartAllCoreThreads,
         clientId: formModel.value.clientId,
         status: formModel.value.status,
-        remark: formModel.value.remark
+        remark: formModel.value.remark,
+        notifyItems: formModel.value.notifyItems
       };
       const { error } = await fetchUpdateThreadPool(updateData as any);
       if (!error) {
@@ -454,7 +529,8 @@ async function handleSubmit() {
         clientId: formModel.value.clientId,
         clientName: selectedClientName.value,
         status: formModel.value.status,
-        remark: formModel.value.remark
+        remark: formModel.value.remark,
+        notifyItems: formModel.value.notifyItems
       };
       const { error } = await fetchAddThreadPool(addData as any);
       if (!error) {
@@ -477,6 +553,12 @@ function handleCancel() {
   showModal.value = false;
 }
 
+// 处理通知配置变更
+function handleNotifyChange() {
+  // 通知配置变更时的处理逻辑
+  console.log('通知配置已更新:', formModel.value.notifyItems);
+}
+
 // 监听分页变化
 watch(
   () => [pagination.value.page, pagination.value.pageSize],
@@ -485,10 +567,29 @@ watch(
   }
 );
 
-// 移除冗余的全局状态监听，因为 ClientSelector 组件已经处理了状态同步
+// 监听客户端选择变化，自动加载数据
+watch(
+  () => clientStore.selectedClientName,
+  async (newClientName) => {
+    if (newClientName && !selectedClient.value) {
+      // 找到对应的客户端信息
+      const client = clientStore.clients.find((c) => c.clientName === newClientName);
+      if (client) {
+        selectedClient.value = client;
+        selectedClientName.value = client.clientName;
+        // 自动加载数据
+        await Promise.all([loadData(), loadNotifyPlatforms()]);
+      }
+    }
+  }
+);
 
-onMounted(() => {
-  // 页面加载时不需要手动加载数据，ClientSelector组件会自动处理客户端选择
+onMounted(async () => {
+  // 等待客户端列表加载完成
+  await clientStore.getClientList();
+
+  // 自动选择第一个可用的客户端
+  await autoSelectFirstAvailableClient();
 });
 </script>
 
@@ -672,6 +773,11 @@ onMounted(() => {
                   placeholder="请输入备注信息"
                   :rows="3" />
         </NFormItem>
+
+        <!-- 通知配置 -->
+        <NotifyConfig v-model="formModel.notifyItems"
+                      :platforms="platformOptions"
+                      @change="handleNotifyChange" />
       </NForm>
 
       <template #footer>

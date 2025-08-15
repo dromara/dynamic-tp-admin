@@ -105,8 +105,6 @@ onMounted(() => {
       <NButton size="small"
                :loading="clientStore.loading"
                @click="refreshClientList">
-        <SvgIcon icon="ic:round-refresh"
-                 class="mr-1" />
         刷新
       </NButton>
     </template>

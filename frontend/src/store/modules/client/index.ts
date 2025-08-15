@@ -32,10 +32,12 @@ export const useClientStore = defineStore('client', () => {
         clients.value = data;
         loaded.value = true;
 
-        // 如果没有选中客户端且有客户端列表，默认选择第一个
+        // 如果没有选中客户端且有客户端列表，默认选择第一个在线的客户端
         if (!selectedClientName.value && data.length > 0) {
-          const firstClient = data[0];
-          setSelectedClient(firstClient.clientName, firstClient);
+          const firstOnlineClient = data.find((client) => client.status === 'online');
+          if (firstOnlineClient) {
+            setSelectedClient(firstOnlineClient.clientName, firstOnlineClient);
+          }
         }
       }
       return data || [];
