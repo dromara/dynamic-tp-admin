@@ -53,9 +53,167 @@ const timeSeriesData = ref<
   >
 >({});
 
+interface InternalOptimizedData {
+  timestamps: string[]; // 共享时间戳数组
+  pools: Record<string, PoolSnapshot[]>; // 每个线程池的快照数组
+  maxDataPoints: number; // 最大数据点数量
+  currentIndex: number; // 当前写入位置
+  isFull: boolean; // 缓冲区是否已满
+}
+
+interface PoolSnapshot {
+  corePoolSize: number;
+  maximumPoolSize: number;
+  poolSize: number;
+  activeCount: number;
+  queueSize: number;
+  tps: number;
+  avg: number;
+}
+
+// 内部优化数据结构
+const _internalOptimizedData = ref<Record<string, InternalOptimizedData>>({});
+
 // 缓存相关配置
 const CACHE_KEY = 'home_monitor_time_series_data';
 const CACHE_EXPIRE_TIME = 24 * 60 * 60 * 1000; // 24小时过期时间
+const MAX_DATA_POINTS = 30; // 最大数据点数量
+
+// 初始化或获取内部优化数据结构
+function _getOrCreateInternalData(clientName: string): InternalOptimizedData {
+  if (!_internalOptimizedData.value[clientName]) {
+    _internalOptimizedData.value[clientName] = {
+      timestamps: new Array(MAX_DATA_POINTS).fill(''),
+      pools: {},
+      maxDataPoints: MAX_DATA_POINTS,
+      currentIndex: 0,
+      isFull: false
+    };
+  }
+  return _internalOptimizedData.value[clientName];
+}
+
+// 内部优化的数据更新函数（环形缓冲区）
+function _updateInternalTimeSeriesData() {
+  if (!metrics.value.length) return;
+
+  const now = new Date();
+  const timestamp = now.toLocaleTimeString('zh-CN', {
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+
+  const clientName = clientStore.selectedClientName;
+  if (!clientName) return;
+
+  const clientData = _getOrCreateInternalData(clientName);
+  const currentIndex = clientData.currentIndex;
+
+  // 更新时间戳（覆盖写入，O(1)操作）
+  clientData.timestamps[currentIndex] = timestamp;
+
+  // 更新每个线程池的数据
+  metrics.value.forEach((item: Api.Monitor.ThreadPoolMetrics) => {
+    if (!clientData.pools[item.poolName]) {
+      // 初始化线程池数据数组
+      clientData.pools[item.poolName] = new Array(MAX_DATA_POINTS).fill(null).map(() => ({
+        corePoolSize: 0,
+        maximumPoolSize: 0,
+        poolSize: 0,
+        activeCount: 0,
+        queueSize: 0,
+        tps: 0,
+        avg: 0
+      }));
+    }
+
+    const poolSnapshots = clientData.pools[item.poolName];
+
+    // 覆盖写入当前索引位置的数据（O(1)操作）
+    poolSnapshots[currentIndex] = {
+      corePoolSize: item.corePoolSize,
+      maximumPoolSize: processSpecialValue(item.maximumPoolSize),
+      poolSize: item.poolSize,
+      activeCount: item.activeCount,
+      queueSize: processSpecialValue(item.queueSize),
+      tps: item.tps,
+      avg: item.avg
+    };
+  });
+
+  // 更新索引位置
+  clientData.currentIndex = (currentIndex + 1) % MAX_DATA_POINTS;
+  if (clientData.currentIndex === 0) {
+    clientData.isFull = true;
+  }
+}
+
+// 将优化后的数据转换为兼容格式
+function _convertInternalToCompatible(clientName: string) {
+  const optimizedData = _internalOptimizedData.value[clientName];
+  if (!optimizedData) return;
+
+  const compatibleData: {
+    timestamps: string[];
+    poolData: Record<
+      string,
+      {
+        corePoolSize: number[];
+        maximumPoolSize: number[];
+        poolSize: number[];
+        activeCount: number[];
+        queueSize: number[];
+        tps: number[];
+        avg: number[];
+      }
+    >;
+  } = {
+    timestamps: [],
+    poolData: {}
+  };
+
+  // 根据缓冲区状态确定数据范围
+  const dataLength = optimizedData.isFull ? optimizedData.maxDataPoints : optimizedData.currentIndex;
+
+  for (let i = 0; i < dataLength; i++) {
+    const actualIndex = (optimizedData.currentIndex - dataLength + i + optimizedData.maxDataPoints) % optimizedData.maxDataPoints;
+    const timestamp = optimizedData.timestamps[actualIndex];
+
+    if (timestamp) {
+      compatibleData.timestamps.push(timestamp);
+
+      // 转换每个线程池的数据
+      Object.keys(optimizedData.pools).forEach((poolName) => {
+        if (!compatibleData.poolData[poolName]) {
+          compatibleData.poolData[poolName] = {
+            corePoolSize: [],
+            maximumPoolSize: [],
+            poolSize: [],
+            activeCount: [],
+            queueSize: [],
+            tps: [],
+            avg: []
+          };
+        }
+
+        const snapshot = optimizedData.pools[poolName][actualIndex];
+        if (snapshot) {
+          compatibleData.poolData[poolName].corePoolSize.push(snapshot.corePoolSize);
+          compatibleData.poolData[poolName].maximumPoolSize.push(snapshot.maximumPoolSize);
+          compatibleData.poolData[poolName].poolSize.push(snapshot.poolSize);
+          compatibleData.poolData[poolName].activeCount.push(snapshot.activeCount);
+          compatibleData.poolData[poolName].queueSize.push(snapshot.queueSize);
+          compatibleData.poolData[poolName].tps.push(snapshot.tps);
+          compatibleData.poolData[poolName].avg.push(snapshot.avg);
+        }
+      });
+    }
+  }
+
+  timeSeriesData.value[clientName] = compatibleData;
+}
 
 // 加载缓存的时间序列数据
 function loadCachedTimeSeriesData() {
@@ -65,8 +223,13 @@ function loadCachedTimeSeriesData() {
       const { data, timestamp } = JSON.parse(cached);
       // 检查缓存是否过期
       if (Date.now() - timestamp < CACHE_EXPIRE_TIME) {
-        timeSeriesData.value = data;
+        _internalOptimizedData.value = data;
         console.log('从缓存恢复时间序列数据:', Object.keys(data));
+
+        Object.keys(data).forEach((clientName) => {
+          _convertInternalToCompatible(clientName);
+        });
+
         return true;
       } else {
         // 缓存过期，清除
@@ -85,7 +248,7 @@ function loadCachedTimeSeriesData() {
 function saveTimeSeriesDataToCache() {
   try {
     const cacheData = {
-      data: timeSeriesData.value,
+      data: _internalOptimizedData.value,
       timestamp: Date.now()
     };
     localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
@@ -214,71 +377,14 @@ async function getMetrics() {
   }
 }
 
-// 更新时间序列数据
 function updateTimeSeriesData() {
-  if (!metrics.value.length) return;
+  // 调用内部优化的数据更新函数
+  _updateInternalTimeSeriesData();
 
-  const now = new Date();
-  const timestamp = now.toLocaleTimeString('zh-CN', {
-    hour12: false,
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  });
-
-  // 获取当前客户端的时间序列数据
-  const currentClientData = timeSeriesData.value[clientStore.selectedClientName] || {
-    timestamps: [],
-    poolData: {}
-  };
-
-  // 添加时间戳
-  currentClientData.timestamps.push(timestamp);
-
-  // 限制数据点数量，保留最近30个数据点
-  if (currentClientData.timestamps.length > 30) {
-    currentClientData.timestamps.shift();
+  // 转换为兼容格式供图表组件使用
+  if (clientStore.selectedClientName) {
+    _convertInternalToCompatible(clientStore.selectedClientName);
   }
-
-  // 更新每个线程池的数据
-  metrics.value.forEach((item: Api.Monitor.ThreadPoolMetrics) => {
-    if (!currentClientData.poolData[item.poolName]) {
-      currentClientData.poolData[item.poolName] = {
-        corePoolSize: [],
-        maximumPoolSize: [],
-        poolSize: [],
-        activeCount: [],
-        queueSize: [],
-        tps: [],
-        avg: []
-      };
-    }
-
-    const poolData = currentClientData.poolData[item.poolName];
-
-    // 添加数据点，对最大线程数和队列大小进行特殊处理
-    poolData.corePoolSize.push(item.corePoolSize);
-    poolData.maximumPoolSize.push(processSpecialValue(item.maximumPoolSize));
-    poolData.poolSize.push(item.poolSize);
-    poolData.activeCount.push(item.activeCount);
-    poolData.queueSize.push(processSpecialValue(item.queueSize));
-    poolData.tps.push(item.tps);
-    poolData.avg.push(item.avg);
-
-    // 限制数据点数量
-    if (poolData.corePoolSize.length > 30) {
-      poolData.corePoolSize.shift();
-      poolData.maximumPoolSize.shift();
-      poolData.poolSize.shift();
-      poolData.activeCount.shift();
-      poolData.queueSize.shift();
-      poolData.tps.shift();
-      poolData.avg.shift();
-    }
-  });
-
-  // 保存回数据结构
-  timeSeriesData.value[clientStore.selectedClientName] = currentClientData;
 
   // 保存到本地缓存
   saveTimeSeriesDataToCache();
