@@ -8,19 +8,19 @@ import com.alipay.remoting.rpc.RpcServer;
 import com.alipay.remoting.serialization.HessianSerializer;
 import com.alipay.remoting.serialization.SerializerManager;
 import com.izpan.infrastructure.server.processor.AdminServerUserProcessor;
-import com.izpan.infrastructure.server.processor.ServerAttributeProcessor;
 import com.izpan.infrastructure.server.processor.ServerConnectProcessor;
 import com.izpan.infrastructure.server.processor.ServerDisconnectProcessor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.dromara.dynamictp.common.em.AdminRequestTypeEnum;
 import org.dromara.dynamictp.common.entity.AdminRequestBody;
-import org.dromara.dynamictp.common.properties.DtpProperties;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
@@ -37,15 +37,13 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class AdminServer {
 
-    private final int port = 8989;
+    @Value("${dynamictp.adminPort:8989}")
+    private int port;
 
     private RpcServer server;
 
     @Autowired
     private AdminServerUserProcessor adminServerUserProcessor;
-
-    @Autowired
-    private ServerAttributeProcessor serverAttributeProcessor;
 
     @Autowired
     private ServerConnectProcessor serverConnectProcessor;
@@ -66,7 +64,6 @@ public class AdminServer {
                 serverConnectProcessor);
         server.addConnectionEventProcessor(ConnectionEventType.CLOSE,
                 serverDisconnectProcessor);
-        server.registerUserProcessor(serverAttributeProcessor);
         server.registerUserProcessor(adminServerUserProcessor);
         this.server.startup();
         SerializerManager.addSerializer(1, SERIALIZER);
@@ -76,7 +73,7 @@ public class AdminServer {
 
     /**
      * 向指定客户端发送请求
-     * 
+     *
      * @param clientAddress 客户端地址
      * @param requestType   请求类型
      * @param body          请求体
@@ -93,7 +90,7 @@ public class AdminServer {
 
     /**
      * 向所有连接的客户端广播请求
-     * 
+     *
      * @param requestType 请求类型
      * @param body        请求体
      * @return 所有客户端的响应结果列表
@@ -150,7 +147,7 @@ public class AdminServer {
 
     /**
      * 获取所有已连接的客户端
-     * 
+     *
      * @return 客户端名称集合
      */
     public Set<String> getConnectedClients() {
@@ -159,7 +156,7 @@ public class AdminServer {
 
     /**
      * 获取所有已连接的客户端地址
-     * 
+     *
      * @return 客户端地址集合
      */
     public Set<String> getConnectedClientAddresses() {
@@ -168,7 +165,7 @@ public class AdminServer {
 
     /**
      * 获取连接的客户端数量
-     * 
+     *
      * @return 客户端数量
      */
     public int getConnectedClientCount() {
@@ -177,7 +174,7 @@ public class AdminServer {
 
     /**
      * 检查客户端是否已连接（通过地址）
-     * 
+     *
      * @param clientAddress 客户端地址
      * @return 是否已连接
      */
@@ -187,7 +184,7 @@ public class AdminServer {
 
     /**
      * 根据客户端名称获取客户端地址
-     * 
+     *
      * @param clientName 客户端名称
      * @return 客户端地址，如果不存在则返回null
      */
@@ -197,7 +194,7 @@ public class AdminServer {
 
     /**
      * 根据客户端地址获取客户端名称
-     * 
+     *
      * @param clientAddress 客户端地址
      * @return 客户端名称，如果不存在则返回null
      */
@@ -206,7 +203,7 @@ public class AdminServer {
     }
 
     public String getAttribute(String clientAddress, String key) {
-        Map<String, String> map = serverAttributeProcessor.getAttributes()
+        Map<String, String> map = adminServerUserProcessor.getAttributes()
                 .get(clientAddress);
         if (map == null) {
             return null;
@@ -225,7 +222,7 @@ public class AdminServer {
         if (clientName == null || clientName.isBlank()) {
             return null;
         }
-        Map<String, Map<String, String>> allAttributes = serverAttributeProcessor.getAttributes();
+        Map<String, Map<String, String>> allAttributes = adminServerUserProcessor.getAttributes();
         for (Map.Entry<String, Map<String, String>> entry : allAttributes.entrySet()) {
             Map<String, String> attr = entry.getValue();
             if (attr == null) {
@@ -253,7 +250,4 @@ public class AdminServer {
         log.info("AdminServer shutdown completed");
     }
 
-    // 保留占位方法以避免未使用导入的告警
-    private void DtpPropertiesExample() {
-        /* no-op */ }
 }

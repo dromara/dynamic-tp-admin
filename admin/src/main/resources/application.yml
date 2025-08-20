@@ -17,3 +17,6 @@ spring:
       - classpath:config/mybatis-plus.yml
       - classpath:config/swagger.yml
       - classpath:config/quartz.yml
+
+dynamictp:
+  adminPort: 8989

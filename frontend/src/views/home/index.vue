@@ -11,7 +11,9 @@ import {
   ResponseTimeChart,
   StatisticsOverview,
   ThreadPoolTable,
-  ThreadUsageChart
+  CoreThreadChart,
+  MaxThreadChart,
+  CurrentThreadChart
 } from './modules';
 
 defineOptions({
@@ -545,9 +547,17 @@ onUnmounted(() => {
                         :refreshing="refreshing"
                         @refresh="refreshData" />
 
-    <!-- 线程池线程数变化趋势 -->
-    <ThreadUsageChart :metrics="metrics"
-                      :time-series-data="timeSeriesData[clientStore.selectedClientName] || { timestamps: [], poolData: {} }" />
+    <!-- 核心线程数变化趋势 -->
+    <CoreThreadChart :metrics="metrics"
+                     :time-series-data="timeSeriesData[clientStore.selectedClientName] || { timestamps: [], poolData: {} }" />
+
+    <!-- 最大线程数变化趋势 -->
+    <MaxThreadChart :metrics="metrics"
+                    :time-series-data="timeSeriesData[clientStore.selectedClientName] || { timestamps: [], poolData: {} }" />
+
+    <!-- 当前线程数变化趋势 -->
+    <CurrentThreadChart :metrics="metrics"
+                        :time-series-data="timeSeriesData[clientStore.selectedClientName] || { timestamps: [], poolData: {} }" />
 
     <!-- 队列使用情况 -->
     <QueueUsageChart :metrics="metrics" />

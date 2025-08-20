@@ -38,14 +38,6 @@ function updateChart() {
   });
 
   setQueueUsageOptions({
-    title: {
-      text: '队列使用情况',
-      left: 'center',
-      textStyle: {
-        fontSize: 16,
-        fontWeight: 'bold'
-      }
-    },
     tooltip: {
       trigger: 'axis',
       axisPointer: {
@@ -62,6 +54,18 @@ function updateChart() {
                 剩余容量: ${displayQueueRemainingCapacity}<br/>
                 使用率: ${item.usageRate}%`;
       }
+    },
+    legend: {
+      data: ['队列大小'],
+      top: 20,
+      type: 'scroll'
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '3%',
+      top: '30%',
+      containLabel: true
     },
     xAxis: {
       type: 'category',
@@ -105,7 +109,10 @@ onMounted(() => {
 </script>
 
 <template>
-  <NCard title="队列使用情况" :bordered="false" class="card-wrapper">
-    <div ref="queueUsageChartRef" class="h-80" />
+  <NCard title="队列使用情况"
+         :bordered="false"
+         class="card-wrapper">
+    <div ref="queueUsageChartRef"
+         class="h-80" />
   </NCard>
 </template>

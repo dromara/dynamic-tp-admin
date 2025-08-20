@@ -32,7 +32,7 @@ class ServerConnectProcessorTest {
     // 测试正常添加连接
     processor.addClientConnection("测试客户端-001", mockConnection);
 
-    assertTrue(processor.isClientConnected("测试客户端-001"));
+    assertTrue(processor.isClientConnectedByName("测试客户端-001"));
     assertEquals(1, processor.getConnectedClientCount());
 
     Set<String> clients = processor.getConnectedClients();
@@ -48,7 +48,7 @@ class ServerConnectProcessorTest {
     // 移除连接
     processor.removeClientConnection("测试客户端-001");
 
-    assertFalse(processor.isClientConnected("测试客户端-001"));
+    assertFalse(processor.isClientConnectedByName("测试客户端-001"));
     assertEquals(0, processor.getConnectedClientCount());
   }
 
@@ -71,19 +71,6 @@ class ServerConnectProcessorTest {
     assertEquals(0, processor.getConnectedClientCount());
   }
 
-  @Test
-  void testClearAllConnections() {
-    // 添加多个连接
-    processor.addClientConnection("测试客户端-001", mockConnection);
-    processor.addClientConnection("测试客户端-002", mockConnection);
-    assertEquals(2, processor.getConnectedClientCount());
-
-    // 清理所有连接
-    processor.clearAllConnections();
-
-    assertEquals(0, processor.getConnectedClientCount());
-    assertTrue(processor.getConnectedClients().isEmpty());
-  }
 
   @Test
   void testGetClientConnection() {

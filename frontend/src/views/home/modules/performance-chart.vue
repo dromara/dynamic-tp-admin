@@ -66,8 +66,8 @@ function updateChart() {
   });
 
   // 计算性能指标的最大值，用于动态调整图表高度
-  const allTpsValues = performanceSeries.filter(s => s.name.includes('TPS')).flatMap(s => s.data);
-  const allResponseTimeValues = performanceSeries.filter(s => s.name.includes('响应时间')).flatMap(s => s.data);
+  const allTpsValues = performanceSeries.filter((s) => s.name.includes('TPS')).flatMap((s) => s.data);
+  const allResponseTimeValues = performanceSeries.filter((s) => s.name.includes('响应时间')).flatMap((s) => s.data);
   const maxTps = Math.max(...allTpsValues, 1);
   const maxResponseTime = Math.max(...allResponseTimeValues, 1);
 
@@ -82,14 +82,6 @@ function updateChart() {
   const perfDynamicHeight = Math.min(perfBaseHeight + maxPerfValue * Math.max(heightPerTpsUnit, heightPerResponseTimeUnit), perfMaxHeight);
 
   setPerformanceOptions({
-    title: {
-      text: '性能指标趋势',
-      left: 'center',
-      textStyle: {
-        fontSize: 16,
-        fontWeight: 'bold'
-      }
-    },
     tooltip: {
       trigger: 'axis',
       axisPointer: {
@@ -97,15 +89,15 @@ function updateChart() {
       }
     },
     legend: {
-      data: performanceSeries.map(s => s.name),
-      top: 90,
+      data: performanceSeries.map((s) => s.name),
+      top: 20,
       type: 'scroll'
     },
     grid: {
       left: '3%',
       right: '4%',
       bottom: '3%',
-      top: '45%',
+      top: '30%',
       containLabel: true
     },
     xAxis: {
@@ -156,7 +148,10 @@ onMounted(() => {
 </script>
 
 <template>
-  <NCard title="性能指标趋势" :bordered="false" class="card-wrapper">
-    <div ref="performanceChartRef" class="min-h-80 transition-all duration-300" />
+  <NCard title="性能指标趋势"
+         :bordered="false"
+         class="card-wrapper">
+    <div ref="performanceChartRef"
+         class="min-h-80 transition-all duration-300" />
   </NCard>
 </template>

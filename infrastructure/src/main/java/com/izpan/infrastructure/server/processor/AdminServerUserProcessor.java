@@ -3,11 +3,13 @@ package com.izpan.infrastructure.server.processor;
 import com.alipay.remoting.BizContext;
 import com.alipay.remoting.rpc.protocol.SyncUserProcessor;
 import com.izpan.infrastructure.server.handler.PropertiesHandler;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.dromara.dynamictp.common.entity.AdminRequestBody;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -15,10 +17,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Component
 public class AdminServerUserProcessor extends SyncUserProcessor<AdminRequestBody> {
 
+    @Getter
+    private Map<String, Map<String, String>> attributes = new ConcurrentHashMap<>();
+
     @Autowired(required = false)
     private PropertiesHandler propertiesHandler;
 
     private final ExecutorService executor;
+
+    @Autowired
+    private ServerConnectProcessor serverConnectProcessor;
 
     /**
      * 线程池名称计数器
@@ -68,6 +76,8 @@ public class AdminServerUserProcessor extends SyncUserProcessor<AdminRequestBody
                 return handleAlarmManageRequest(bizContext, adminRequestBody);
             case LOG_MANAGE:
                 return handleLogManageRequest(bizContext, adminRequestBody);
+            case ATTRIBUTE:
+                return handleAttributeRequest(bizContext, adminRequestBody);
             default:
                 throw new IllegalArgumentException("DynamicTp admin request type "
                         + adminRequestBody.getRequestType().getValue() + " is not supported");
@@ -99,6 +109,18 @@ public class AdminServerUserProcessor extends SyncUserProcessor<AdminRequestBody
     }
 
     private Object handleLogManageRequest(BizContext bizContext, AdminRequestBody adminRequestBody) {
+        return null;
+    }
+
+    private Object handleAttributeRequest(BizContext bizContext, AdminRequestBody adminRequestBody) {
+        String remoteAddress = bizContext.getRemoteAddress();
+        Map<String, String> clientAttributes = attributes.computeIfAbsent(remoteAddress,
+                k -> new ConcurrentHashMap<>());
+        Map<String,String> body = (Map<String,String>) adminRequestBody.getBody();
+        clientAttributes.putAll(body);
+
+        String clientName = (body).get("clientName");
+        serverConnectProcessor.addClientConnection(clientName, bizContext.getConnection());
         return null;
     }
 

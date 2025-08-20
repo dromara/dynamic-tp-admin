@@ -107,7 +107,7 @@ public class MonThreadPoolServiceImpl implements IMonThreadPoolService {
         if (result instanceof AdminRequestBody) {
           // 处理 Dynamic-TP AdminClient 返回的 AdminRequestBody
           AdminRequestBody adminResponse = (AdminRequestBody) result;
-          Object responseBody = adminResponse.deserializeBody();
+          Object responseBody = adminResponse.getBody();
 
           if (responseBody instanceof List) {
             @SuppressWarnings("unchecked")

@@ -45,14 +45,6 @@ function updateChart() {
   const percentileDynamicHeight = Math.min(percentileBaseHeight + maxResponseTimePercentile * heightPerPercentileUnit, percentileMaxHeight);
 
   setResponseTimeOptions({
-    title: {
-      text: '响应时间百分位分布',
-      left: 'center',
-      textStyle: {
-        fontSize: 16,
-        fontWeight: 'bold'
-      }
-    },
     tooltip: {
       trigger: 'axis',
       axisPointer: {
@@ -61,7 +53,7 @@ function updateChart() {
     },
     legend: {
       data: ['TP50', 'TP75', 'TP90', 'TP95', 'TP99', 'TP999'],
-      top: 50
+      top: 20
     },
     grid: {
       left: '3%',
@@ -144,7 +136,10 @@ onMounted(() => {
 </script>
 
 <template>
-  <NCard title="响应时间百分位分布" :bordered="false" class="card-wrapper">
-    <div ref="responseTimeChartRef" class="min-h-80 transition-all duration-300" />
+  <NCard title="响应时间百分位分布"
+         :bordered="false"
+         class="card-wrapper">
+    <div ref="responseTimeChartRef"
+         class="min-h-80 transition-all duration-300" />
   </NCard>
 </template>

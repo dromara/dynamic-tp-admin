@@ -7,13 +7,14 @@ import com.izpan.infrastructure.annotation.RepeatSubmit;
 import com.izpan.infrastructure.page.PageQuery;
 import com.izpan.infrastructure.server.AdminServer;
 import com.izpan.modules.monitor.domain.bo.MonThreadPoolBO;
-import com.izpan.modules.monitor.facade.IMonThreadPoolFacade;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.dromara.dynamictp.common.em.AdminRequestTypeEnum;
+import org.dromara.dynamictp.common.entity.AdminRequestBody;
 import org.dromara.dynamictp.common.entity.ThreadPoolStats;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -37,9 +38,6 @@ import java.util.ArrayList;
 @RequiredArgsConstructor
 @RequestMapping("/thread_pool/client")
 public class MonThreadPoolController {
-
-  @NonNull
-  private IMonThreadPoolFacade monThreadPoolFacade;
 
   @NonNull
   private AdminServer adminServer;
@@ -68,13 +66,13 @@ public class MonThreadPoolController {
     try {
       // 直接向指定客户端请求线程池数据
       Object result = adminServer.requestToSpecificClient(clientAddress,
-          org.dromara.dynamictp.common.em.AdminRequestTypeEnum.EXECUTOR_MONITOR, null);
+          AdminRequestTypeEnum.EXECUTOR_MONITOR, null);
 
       List<ThreadPoolStats> clientThreadPools = new ArrayList<>();
 
-      if (result instanceof org.dromara.dynamictp.common.entity.AdminRequestBody) {
-        org.dromara.dynamictp.common.entity.AdminRequestBody adminResponse = (org.dromara.dynamictp.common.entity.AdminRequestBody) result;
-        Object responseBody = adminResponse.deserializeBody();
+      if (result instanceof AdminRequestBody) {
+        AdminRequestBody adminResponse = (AdminRequestBody) result;
+        Object responseBody = adminResponse.getBody();
 
         if (responseBody instanceof List) {
           @SuppressWarnings("unchecked")
@@ -127,13 +125,13 @@ public class MonThreadPoolController {
     try {
       // 直接向指定客户端请求线程池数据
       Object result = adminServer.requestToSpecificClient(clientAddress,
-          org.dromara.dynamictp.common.em.AdminRequestTypeEnum.EXECUTOR_MONITOR, null);
+          AdminRequestTypeEnum.EXECUTOR_MONITOR, null);
 
       List<ThreadPoolStats> clientThreadPools = new ArrayList<>();
 
-      if (result instanceof org.dromara.dynamictp.common.entity.AdminRequestBody) {
-        org.dromara.dynamictp.common.entity.AdminRequestBody adminResponse = (org.dromara.dynamictp.common.entity.AdminRequestBody) result;
-        Object responseBody = adminResponse.deserializeBody();
+      if (result instanceof AdminRequestBody) {
+        AdminRequestBody adminResponse = (AdminRequestBody) result;
+        Object responseBody = adminResponse.getBody();
 
         if (responseBody instanceof List) {
           @SuppressWarnings("unchecked")
@@ -193,12 +191,10 @@ public class MonThreadPoolController {
     try {
       // 直接向指定客户端请求线程池数据
       Object result = adminServer.requestToSpecificClient(clientAddress,
-          org.dromara.dynamictp.common.em.AdminRequestTypeEnum.EXECUTOR_MONITOR, null);
+          AdminRequestTypeEnum.EXECUTOR_MONITOR, null);
 
-      if (result instanceof org.dromara.dynamictp.common.entity.AdminRequestBody) {
-        org.dromara.dynamictp.common.entity.AdminRequestBody adminResponse = (org.dromara.dynamictp.common.entity.AdminRequestBody) result;
-        Object responseBody = adminResponse.deserializeBody();
-
+      if (result instanceof AdminRequestBody) {
+        Object responseBody = ((AdminRequestBody) result).getBody();
         if (responseBody instanceof List) {
           @SuppressWarnings("unchecked")
           List<ThreadPoolStats> clientThreadPools = (List<ThreadPoolStats>) responseBody;

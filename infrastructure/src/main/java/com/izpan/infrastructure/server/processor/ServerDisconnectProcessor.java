@@ -12,36 +12,36 @@ import java.util.Map;
 @Component
 public class ServerDisconnectProcessor implements ConnectionEventProcessor {
 
-  private final ServerConnectProcessor serverConnectProcessor;
-  private final ServerAttributeProcessor serverAttributeProcessor;
+    private final ServerConnectProcessor serverConnectProcessor;
 
-  @Autowired
-  public ServerDisconnectProcessor(ServerConnectProcessor serverConnectProcessor,
-      ServerAttributeProcessor serverAttributeProcessor) {
-    this.serverConnectProcessor = serverConnectProcessor;
-    this.serverAttributeProcessor = serverAttributeProcessor;
-  }
+    private final AdminServerUserProcessor adminServerUserProcessor;
 
-  @Override
-  public void onEvent(String remoteAddress, Connection connection) {
-    log.info("DynamicTp admin server disconnected, remoteAddress: {}", remoteAddress);
-
-    // 从属性中查找对应的clientName
-    String clientName = null;
-    Map<String, String> clientAttributes = serverAttributeProcessor.getAttributes().get(remoteAddress);
-    if (clientAttributes != null) {
-      clientName = clientAttributes.get("clientName");
+    @Autowired
+    public ServerDisconnectProcessor(ServerConnectProcessor serverConnectProcessor, AdminServerUserProcessor adminServerUserProcessor) {
+        this.serverConnectProcessor = serverConnectProcessor;
+        this.adminServerUserProcessor = adminServerUserProcessor;
     }
 
-    // 如果没有找到clientName，则使用remoteAddress作为备选
-    if (clientName == null || clientName.trim().isEmpty()) {
-      clientName = remoteAddress;
-    }
+    @Override
+    public void onEvent(String remoteAddress, Connection connection) {
+        log.info("DynamicTp admin server disconnected, remoteAddress: {}", remoteAddress);
 
-    serverConnectProcessor.removeClientConnection(clientName);
+        // 从属性中查找对应的clientName
+        String clientName = null;
+        Map<String, String> clientAttributes = adminServerUserProcessor.getAttributes().get(remoteAddress);
+        if (clientAttributes != null) {
+            clientName = clientAttributes.get("clientName");
+        }
 
-    if (serverAttributeProcessor.getAttributes().containsKey(remoteAddress)) {
-      serverAttributeProcessor.getAttributes().remove(remoteAddress);
+        // 如果没有找到clientName，则使用remoteAddress作为备选
+        if (clientName == null || clientName.trim().isEmpty()) {
+            clientName = remoteAddress;
+        }
+
+        serverConnectProcessor.removeClientConnection(clientName);
+
+        if (adminServerUserProcessor.getAttributes().containsKey(remoteAddress)) {
+            adminServerUserProcessor.getAttributes().remove(remoteAddress);
+        }
     }
-  }
 }

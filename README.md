@@ -89,35 +89,35 @@ frontend/
 
 ### 后端技术栈
 
-| 技术组件           | 版本        | 说明                    |
-| :----------------- | :---------- | :---------------------- |
-| **Spring Boot**    | 3.5.0       | 核心框架                |
-| **JDK**            | 21+         | Java 运行环境           |
-| **MyBatis-Plus**   | 3.5.8       | ORM 框架               |
-| **MySQL**          | 8.4.0       | 主数据库                |
-| **Redis**          | 7.2.3       | 缓存数据库              |
-| **Sa-Token**       | 1.43.0      | 安全认证框架            |
-| **Knife4j**        | 4.5.0       | API 文档工具            |
-| **Quartz**         | -            | 任务调度框架            |
-| **Druid**          | -            | 数据库连接池            |
-| **Logback**        | 1.5.18      | 日志管理                |
-| **Lombok**         | 1.18.38     | 代码生成工具            |
-| **Hutool**         | 5.8.38      | 工具库                  |
+| 技术组件         | 版本    | 说明          |
+| :--------------- | :------ | :------------ |
+| **Spring Boot**  | 3.5.0   | 核心框架      |
+| **JDK**          | 21+     | Java 运行环境 |
+| **MyBatis-Plus** | 3.5.8   | ORM 框架      |
+| **MySQL**        | 8.4.0   | 主数据库      |
+| **Redis**        | 7.2.3   | 缓存数据库    |
+| **Sa-Token**     | 1.43.0  | 安全认证框架  |
+| **Knife4j**      | 4.5.0   | API 文档工具  |
+| **Quartz**       | -       | 任务调度框架  |
+| **Druid**        | -       | 数据库连接池  |
+| **Logback**      | 1.5.18  | 日志管理      |
+| **Lombok**       | 1.18.38 | 代码生成工具  |
+| **Hutool**       | 5.8.38  | 工具库        |
 
 ### 前端技术栈
 
-| 技术组件           | 版本        | 说明                    |
-| :----------------- | :---------- | :---------------------- |
-| **Vue**            | 3.5.17      | 前端框架                |
-| **TypeScript**     | 5.8.3       | 类型系统                |
-| **Vite**           | 7.0.0       | 构建工具                |
-| **Naive UI**       | 2.42.0      | UI 组件库               |
-| **Pinia**          | 3.0.3       | 状态管理                |
-| **Vue Router**     | 4.5.1       | 路由管理                |
-| **UnoCSS**         | 0.66.3      | CSS 框架                |
-| **ECharts**        | 5.6.0       | 图表库                  |
-| **Day.js**         | 1.11.13     | 日期处理                |
-| **VueUse**         | 13.4.0      | Vue 组合式函数库        |
+| 技术组件       | 版本    | 说明             |
+| :------------- | :------ | :--------------- |
+| **Vue**        | 3.5.17  | 前端框架         |
+| **TypeScript** | 5.8.3   | 类型系统         |
+| **Vite**       | 7.0.0   | 构建工具         |
+| **Naive UI**   | 2.42.0  | UI 组件库        |
+| **Pinia**      | 3.0.3   | 状态管理         |
+| **Vue Router** | 4.5.1   | 路由管理         |
+| **UnoCSS**     | 0.66.3  | CSS 框架         |
+| **ECharts**    | 5.6.0   | 图表库           |
+| **Day.js**     | 1.11.13 | 日期处理         |
+| **VueUse**     | 13.4.0  | Vue 组合式函数库 |
 
 ## 🚀 快速开始
 
@@ -133,16 +133,19 @@ frontend/
 ### 后端启动
 
 1. **克隆项目**
+
 ```bash
 git clone https://github.com/paynezhuang/panis-boot
 git clone https://github.com/paynezhuang/panis-boot-starter
 ```
 
 2. **数据库配置**
+
    - 创建数据库 `panis_boot`
    - 导入 SQL 文件（联系作者获取）
 
 3. **配置文件修改**
+
    - 修改 `admin/src/main/resources/application-dev.yml`
    - 配置数据库和 Redis 连接信息
 
@@ -153,17 +156,20 @@ git clone https://github.com/paynezhuang/panis-boot-starter
 ### 前端启动
 
 1. **安装依赖**
+
 ```bash
 cd frontend
 pnpm install
 ```
 
 2. **启动开发服务器**
+
 ```bash
 pnpm dev
 ```
 
 3. **构建生产版本**
+
 ```bash
 pnpm build
 ```
@@ -171,6 +177,7 @@ pnpm build
 ## 📱 功能模块
 
 ### 🔐 系统管理
+
 - **用户管理**: 用户增删改查、角色分配、状态管理
 - **角色管理**: 角色权限配置、菜单权限分配
 - **菜单管理**: 动态菜单配置、权限控制
@@ -178,6 +185,7 @@ pnpm build
 - **字典管理**: 系统字典配置、数据字典维护
 
 ### 📊 系统监控
+
 - **性能监控**: CPU、内存、磁盘、网络监控
 - **线程池监控**: 动态线程池配置、性能调优
 - **任务调度**: Quartz 任务管理、执行日志
@@ -185,11 +193,13 @@ pnpm build
 - **登录日志**: 用户登录记录、安全审计
 
 ### 🛠️ 业务管理
+
 - **通知平台**: 消息推送、通知管理
 - **工具模块**: 常用工具集合、实用功能
 - **线程池管理**: 线程池配置、性能监控
 
 ### 🎨 前端特性
+
 - **主题切换**: 明暗主题、自定义主题
 - **国际化**: 中英文双语支持
 - **权限控制**: 基于角色的页面权限控制
@@ -220,14 +230,35 @@ pnpm build
 
 ### Docker 部署
 
-项目提供了 Dockerfile 支持容器化部署：
+支持一键编排（MySQL + Redis + 后端 + 前端）：
 
 ```bash
-# 构建镜像
-docker build -t panis-boot-admin .
+# 启动（首次会自动构建镜像）
+docker compose up -d --build
 
-# 运行容器
-docker run -d -p 9999:9999 panis-boot-admin
+# 查看服务
+docker compose ps
+
+# 访问地址
+# 后端 API: http://localhost:9999
+# 前端界面: http://localhost
+```
+
+可选：自定义数据库/Redis 连接（在 `docker-compose.yml` 中修改或通过命令覆盖）：
+
+```bash
+DB_PASSWORD=yourpass \
+docker compose up -d --build
+```
+
+如果仅单独构建后端或前端镜像：
+
+```bash
+# 后端（多阶段构建，自动打包 admin 模块）
+docker build -f admin/Dockerfile -t panis-boot-admin:latest .
+
+# 前端（多阶段构建，Nginx 托管静态资源）
+docker build -f frontend/Dockerfile -t panis-boot-frontend:latest ./frontend
 ```
 
 ### 传统部署
