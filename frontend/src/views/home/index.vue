@@ -295,11 +295,13 @@ function processSpecialValue(value: number): number {
 // 检查客户端状态（使用 clientName）
 async function checkClientStatus(clientName: string): Promise<boolean> {
   try {
+    console.log(`开始检查客户端 ${clientName} 状态`);
     const { error, data } = await fetchCheckClientStatus(clientName);
     if (error) {
       console.error('检查客户端状态失败:', error);
       return false;
     }
+    console.log(`客户端 ${clientName} 状态检查结果:`, data);
     return data;
   } catch (err) {
     console.error('检查客户端状态异常:', err);
@@ -448,6 +450,16 @@ async function refreshData() {
 // 开始定时刷新
 function startTimer() {
   timer = setInterval(async () => {
+    // 每15秒检查一次客户端状态
+    if (clientStore.selectedClientName) {
+      const isOnline = await checkClientStatus(clientStore.selectedClientName);
+      if (!isOnline) {
+        console.warn('客户端状态检查失败，刷新客户端列表');
+        // 状态检查失败，刷新客户端列表
+        await clientStore.refreshClientList();
+      }
+    }
+
     // 定时检查无响应的客户端
     const unresponsiveClients = await getUnresponsiveClients();
     if (unresponsiveClients.length > 0) {
@@ -458,7 +470,7 @@ function startTimer() {
     if (clientStore.selectedClientName) {
       getMetrics();
     }
-  }, 30000); // 每30秒刷新一次
+  }, 15000); // 每15秒刷新一次
 }
 
 // 停止定时刷新

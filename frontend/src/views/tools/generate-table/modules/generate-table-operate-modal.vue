@@ -78,7 +78,7 @@ function createDefaultModel(): Model {
     tableName: null,
     tableComment: '',
     tablePrefix: '',
-    parentPackage: 'com.izpan',
+    parentPackage: 'org.dromara.dynamictp.admin',
     moduleName: '',
     parentMenuId: 0,
     author: '',
