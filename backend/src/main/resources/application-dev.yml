@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/panis_boot?socketTimeout=60000&connectTimeout=30000&useUnicode=true&characterEncoding=UTF-8&autoReconnect=true&allowMultiQueries=true&serverTimezone=Asia/Shanghai
+    username: root
+    password: 123456
+  data:
+    redis:
+      database: 1
+      host: 127.0.0.1
+      connect-timeout: 10000ms
+      lettuce:
+        pool:
+          enabled: true
+#oss:
+#  name: minio
+#  bucket-name: panis
+#  endpoint:
+#  access-key:
+#  secret-key:
+#  sync-delete: true
+#  expiry: 3600

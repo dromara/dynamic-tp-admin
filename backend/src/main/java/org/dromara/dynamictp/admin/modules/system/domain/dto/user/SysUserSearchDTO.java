@@ -1,0 +1,38 @@
+package org.dromara.dynamictp.admin.modules.system.domain.dto.user;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.io.Serial;
+import java.io.Serializable;
+
+/**
+ * 用户管理 查询 DTO 对象
+ *
+ * @Author eachann <eachannchan@qq.com>
+ * @ProjectName dynamic-tp-admin
+ * @ClassName org.dromara.dynamictp.admin.modules.system.domain.dto.SysUserSearchDTO
+ * @CreateTime 2023/7/10 - 15:04
+ */
+
+@Getter
+@Setter
+public class SysUserSearchDTO implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = -8914866620633001207L;
+
+    @Schema(description = "用户名")
+    private String userName;
+
+    @Schema(description = "真实姓名")
+    private String realName;
+
+    @Schema(description = "邮箱")
+    private String email;
+
+    @Schema(description = "组织ID")
+    private String orgIds;
+
+}

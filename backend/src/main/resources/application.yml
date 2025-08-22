@@ -1,0 +1,22 @@
+server:
+  # 服务端口
+  port: 9999
+
+spring:
+  profiles:
+    # 激活环境
+    active: @env@
+  application:
+    name: panis-boot-admin
+  main:
+    allow-circular-references: true
+    allow-bean-definition-overriding: true
+  config:
+    import:
+      - classpath:config/druid.yml
+      - classpath:config/mybatis-plus.yml
+      - classpath:config/swagger.yml
+      - classpath:config/quartz.yml
+
+dynamictp:
+  adminPort: 8989

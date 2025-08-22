@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+ All Rights Reserved: Copyright [2024] [Zhuang Pan]
+ Open Source Agreement: Apache License, Version 2.0
+ For educational purposes only, commercial use shall comply with the author's copyright information.
+ The author does not guarantee or assume any responsibility for the risks of using software.
+
+ Licensed under the Apache License, Version 2.0 (the "License").
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<mapper namespace="org.dromara.dynamictp.admin.modules.system.repository.mapper.SysDataScopeMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="SysDataScopeResultMap" type="org.dromara.dynamictp.admin.modules.system.domain.entity.SysDataScope">
+        <result column="name" property="name"/>
+        <result column="code" property="code"/>
+        <result column="menu_id" property="menuId"/>
+        <result column="menu_name" property="menuName"/>
+        <result column="permission_id" property="permissionId"/>
+        <result column="permission_resource" property="permissionResource"/>
+        <result column="permission_name" property="permissionName"/>
+        <result column="scope_type" property="scopeType"/>
+        <result column="scope_type_name" property="scopeTypeName"/>
+        <result column="custom_fields" property="customFields"/>
+        <result column="custom_rules" property="customRules"/>
+        <result column="description" property="description"/>
+        <result column="sort" property="sort"/>
+        <result column="status" property="status"/>
+        <result column="id" property="id"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_user_id" property="createUserId"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_user_id" property="updateUserId"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="is_deleted" property="deleted"/>
+    </resultMap>
+
+    <!-- 获取用户组织ID列表（用于缓存） -->
+    <select id="getUserOrgIds" resultType="java.lang.Long">
+        SELECT org_id
+        FROM sys_user_org
+        WHERE user_id = #{userId}
+          AND is_deleted = 0
+    </select>
+
+    <!-- 本组织数据权限 - 单一SQL优化 -->
+    <select id="getUserIdsByUnit" resultType="java.lang.Long">
+        SELECT DISTINCT uo.user_id
+        FROM sys_user_org uo
+        WHERE uo.org_id IN
+        <foreach collection="orgIds" item="orgId" open="(" close=")" separator=",">
+            #{orgId}
+        </foreach>
+        AND uo.is_deleted = 0
+        AND EXISTS (
+            SELECT 1 FROM sys_user u
+            WHERE u.id = uo.user_id
+                AND u.status = '1'
+                AND u.is_deleted = 0
+        )
+    </select>
+
+    <!-- 同组织用户查询 -->
+    <select id="getSameOrgUsers" resultType="java.lang.Long">
+        SELECT DISTINCT uo.user_id
+        FROM sys_user_org uo
+        WHERE uo.org_id IN
+        <foreach collection="orgIds" item="orgId" open="(" close=")" separator=",">
+            #{orgId}
+        </foreach>
+        AND uo.is_deleted = 0
+        AND EXISTS (
+            SELECT 1 FROM sys_user u
+            WHERE u.id = uo.user_id
+                AND u.status = '1'
+                AND u.is_deleted = 0
+        )
+    </select>
+
+    <!-- 子组织用户查询 -->
+    <select id="getChildOrgUsers" resultType="java.lang.Long">
+        SELECT DISTINCT uo.user_id
+        FROM sys_user_org uo
+        INNER JOIN sys_org_units ou ON uo.org_id = ou.id
+        WHERE ou.status = '1'
+        AND ou.is_deleted = 0
+        AND uo.is_deleted = 0
+        <if test="ancestorsPattern != null">
+            AND ou.ancestors REGEXP #{ancestorsPattern}
+        </if>
+        <if test="excludeOrgIds != null and excludeOrgIds.size() > 0">
+            AND ou.id NOT IN
+            <foreach collection="excludeOrgIds" item="orgId" open="(" close=")" separator=",">
+                #{orgId}
+            </foreach>
+        </if>
+        AND EXISTS (
+            SELECT 1 FROM sys_user u
+            WHERE u.id = uo.user_id
+                AND u.status = '1'
+                AND u.is_deleted = 0
+        )
+    </select>
+
+    <!-- 本人及下级组织数据权限 - 优化查询 -->
+    <select id="getSubordinateUsers" resultType="java.lang.Long">
+        SELECT #{userId}
+        UNION ALL
+        SELECT DISTINCT uo.user_id
+        FROM sys_user_org uo
+        INNER JOIN sys_org_units ou ON uo.org_id = ou.id
+        WHERE ou.status = '1'
+            AND ou.is_deleted = 0
+            AND uo.is_deleted = 0
+        <if test="ancestorsPattern != null">
+            AND ou.ancestors REGEXP #{ancestorsPattern}
+        </if>
+        AND uo.user_id != #{userId} -- 避免重复
+        AND EXISTS (
+            SELECT 1 FROM sys_user u
+            WHERE u.id = uo.user_id
+                AND u.status = '1'
+                AND u.is_deleted = 0
+        )
+    </select>
+
+</mapper>
