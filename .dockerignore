@@ -1,0 +1,44 @@
+# Git相关
+.git
+.gitignore
+
+# IDE相关
+.idea
+.vscode
+*.iml
+
+# 构建输出
+target/
+dist/
+build/
+node_modules/
+
+# 日志文件
+*.log
+logs/
+
+# 临时文件
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# 环境配置
+.env
+.env.local
+.env.production
+
+# 文档
+README.md
+CHANGELOG.md
+docs/
+
+# 测试文件
+**/test/
+**/tests/
+**/*.test.js
+**/*.spec.js
+
+# 其他
+*.md
+LICENSE

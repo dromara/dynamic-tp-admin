@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+ All Rights Reserved: Copyright [2024] [Zhuang Pan]
+ Open Source Agreement: Apache License, Version 2.0
+ For educational purposes only, commercial use shall comply with the author's copyright information.
+ The author does not guarantee or assume any responsibility for the risks of using software.
+
+ Licensed under the Apache License, Version 2.0 (the "License").
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<mapper namespace="org.dromara.dynamictp.admin.modules.system.repository.mapper.SysUserOrgMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="SysUserOrgResultMap" type="org.dromara.dynamictp.admin.modules.system.domain.entity.SysUserOrg">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="org_id" property="orgId"/>
+        <result column="principal" property="principal"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_user_id" property="createUserId"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_user_id" property="updateUserId"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="is_deleted" property="deleted"/>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="SysUserOrgColumnList">
+        id,
+        create_user,
+        create_user_id,
+        create_time,
+        update_user,
+        update_user_id,
+        update_time,
+        is_deleted,
+        user_id, org_id, principal
+    </sql>
+
+    <select id="listUserOrgWithUserId" resultMap="SysUserOrgResultMap">
+        SELECT suo.*
+        FROM sys_user_org suo
+                 INNER JOIN sys_org_units sou ON sou.id = suo.org_id
+            AND sou.is_deleted = 0
+            AND sou.status = 1
+        WHERE suo.is_deleted = 0
+          AND suo.user_id = #{userId}
+    </select>
+
+    <update id="updatePrincipal">
+        UPDATE sys_user_org suo SET suo.principal = 0 WHERE suo.user_id = #{userId} AND suo.is_deleted = 0;
+        <if test="orgIds != null and orgIds.size() > 0">
+            UPDATE sys_user_org suo
+            SET suo.principal = 1
+            WHERE suo.user_id = #{userId}
+            AND suo.is_deleted = 0
+            AND suo.org_id IN
+            <foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+                #{orgId}
+            </foreach>
+        </if>
+    </update>
+
+    <!-- 获取用户组织ID列表 -->
+    <select id="getUserOrgIds" resultType="java.lang.Long">
+        SELECT org_id
+        FROM sys_user_org
+        WHERE user_id = #{userId}
+          AND is_deleted = 0
+    </select>
+
+    <!-- 根据组织ID列表获取用户ID列表（本组织权限） -->
+    <select id="getUserIdsByOrgIds" resultType="java.lang.Long">
+        SELECT DISTINCT uo.user_id
+        FROM sys_user_org uo
+        WHERE uo.org_id IN
+        <foreach collection="orgIds" item="orgId" open="(" close=")" separator=",">
+            #{orgId}
+        </foreach>
+          AND uo.is_deleted = 0
+          AND EXISTS (
+            SELECT 1 FROM sys_user u
+            WHERE u.id = uo.user_id
+              AND u.status = '1'
+              AND u.is_deleted = 0
+          )
+    </select>
+
+    <!-- ========== 数据权限专用查询方法 ========== -->
+    
+    <!-- 获取用户担任负责人的组织ID列表 -->
+    <select id="getPrincipalOrgIds" resultType="java.lang.Long">
+        SELECT org_id
+        FROM sys_user_org
+        WHERE user_id = #{userId}
+          AND principal = '1'
+          AND is_deleted = 0
+    </select>
+
+    <!-- 公共SQL片段：查询用户担任负责人的组织的下级组织内的所有用户 -->
+    <sql id="getChildOrgUsers">
+        SELECT DISTINCT uo.user_id FROM sys_user_org uo
+        INNER JOIN sys_org_units ou ON uo.org_id = ou.id 
+            AND ou.status = '1' 
+            AND ou.is_deleted = 0
+        INNER JOIN sys_user u ON uo.user_id = u.id 
+            AND u.status = '1' 
+            AND u.is_deleted = 0
+        WHERE uo.is_deleted = 0
+        AND EXISTS (
+            SELECT 1 FROM sys_user_org suo
+            INNER JOIN sys_org_units sou ON suo.org_id = sou.id
+                AND sou.status = '1'
+                AND sou.is_deleted = 0
+            WHERE suo.user_id = #{userId}
+                AND suo.principal = '1'
+                AND suo.is_deleted = 0
+                AND FIND_IN_SET(sou.id, ou.ancestors)
+        )
+    </sql>
+
+    <!-- 数据权限：本组织及下级组织用户查询（UNIT_AND_CHILD类型）
+         权限规则：
+         1. 用户所在组织的所有用户（无需负责人身份）
+         2. 用户担任负责人的组织的下级组织内的所有用户（需要负责人身份）
+         使用FIND_IN_SET函数基于ancestors字段进行层级查询 -->
+    <select id="getUserIdsByUnitAndChild" resultType="java.lang.Long" parameterType="java.lang.Long">
+        <!-- 查询用户所在组织的所有用户（本组织：本人+同事，无需负责人身份） -->
+        SELECT DISTINCT uo.user_id FROM sys_user_org uo
+            INNER JOIN sys_user u ON uo.user_id = u.id AND u.status = '1' AND u.is_deleted = 0
+        WHERE uo.is_deleted = 0
+        AND EXISTS (
+            SELECT 1 FROM sys_user_org suo
+            WHERE suo.user_id = #{userId}
+                AND suo.is_deleted = 0
+                AND suo.org_id = uo.org_id
+        )
+
+        UNION
+
+        <!-- 查询用户担任负责人的组织的下级组织内的所有用户（下级组织，需要负责人身份） -->
+        <include refid="getChildOrgUsers"/>
+    </select>
+
+    <!-- 数据权限：本人及下级组织用户查询（SELF_AND_CHILD类型）
+         权限规则：
+         1. 返回用户本人
+         2. 用户担任负责人的组织的下级组织内的所有用户
+         使用FIND_IN_SET函数基于ancestors字段进行层级查询 -->
+    <select id="getUserIdsBySelfAndChildWithPrincipal" resultType="java.lang.Long" parameterType="java.lang.Long">
+        <!-- 返回用户本人（本人：仅自己） -->
+        SELECT #{userId} AS user_id FROM sys_user u
+        WHERE u.id = #{userId}
+            AND u.status = '1'
+            AND u.is_deleted = 0
+
+        UNION
+
+        <!-- 查询用户担任负责人的组织的下级组织内的所有用户（下级组织） -->
+        <include refid="getChildOrgUsers"/>
+    </select>
+
+</mapper>
